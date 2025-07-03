@@ -12,6 +12,7 @@
 
 extern AOSACAParams	*g_AOSACAParams;
 extern CCentroid	*g_centroids;
+extern CCamera_IDS	*g_camera;
 
 // CWFSImageDlg dialog
 
@@ -146,9 +147,15 @@ void CWFSImageDlg::OnPaint()
 	{
 		BYTE *pCurRowPixel = (BYTE *)(pDIBSectionBits);
 		if (g_AOSACAParams->g_last_click == LIVE || g_AOSACAParams->g_last_click == SNAP)
-			memcpy(pCurRowPixel, g_AOSACAParams->g_pImgBuffPrc, DIBSecWidth*DIBSecHeight);
+		{
+			std::lock_guard<std::mutex>(g_camera->m_imgMutex);
+			memcpy(pCurRowPixel, g_AOSACAParams->g_pImgBuffPrc, DIBSecWidth * DIBSecHeight);
+		}
 		else
-			memcpy(pCurRowPixel, g_AOSACAParams->g_pLocalImgBuff, DIBSecWidth*DIBSecHeight);
+		{
+			std::lock_guard<std::mutex>(g_camera->m_imgMutex);
+			memcpy(pCurRowPixel, g_AOSACAParams->g_pLocalImgBuff, DIBSecWidth * DIBSecHeight);
+		}
 	
 		imagedisp->DrawImage(offscreenBitmap, 0, 0, DIBSecWidth, DIBSecHeight);
 

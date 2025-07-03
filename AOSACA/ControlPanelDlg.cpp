@@ -6,9 +6,13 @@
 #include "ControlPanelDlg.h"
 #include "afxdialogex.h"
 
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
 extern AOSACAParams	*g_AOSACAParams;
 extern CWFSImageDlg	*g_wfsimg;
-extern CCamera		*g_camera;
+extern CCamera_IDS		*g_camera;
 extern CCentroid	*g_centroids;
 extern COptCalc		*g_optcalc;
 // CControlPanelDlg dialog

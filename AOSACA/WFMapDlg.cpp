@@ -6,6 +6,10 @@
 #include "WFMapDlg.h"
 #include "afxdialogex.h"
 
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
 extern AOSACAParams	*g_AOSACAParams;
 // CWFMapDlg dialog
 
@@ -19,6 +23,10 @@ CWFMapDlg::CWFMapDlg(CWnd* pParent /*=NULL*/)
 	m_dDatatemp	= NULL;
 	m_usDataGrid = NULL;
 	m_bData		= NULL;
+
+	OutputDebugStringA(">>> Entered CWFMapDlg constructor\n");
+	// check common globals
+	if (!g_AOSACAParams->g_pImgBuffPrc) OutputDebugStringA(">>> g_pImgBuffPrc is NULL\n");
 }
 
 CWFMapDlg::~CWFMapDlg()

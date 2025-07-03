@@ -6,8 +6,12 @@
 #include "ThreadClass.h"
 #include <MMSystem.h>
 
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
 extern AOSACAParams		*g_AOSACAParams;
-extern CCamera			*g_camera;
+extern CCamera_IDS		*g_camera;
 extern CCentroid		*g_centroids;
 extern COptCalc			*g_optcalc;
 extern CControlPanelDlg	*g_controlpanel;

@@ -6,6 +6,10 @@
 #include "DMMapDlg.h"
 #include "afxdialogex.h"
 
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
 extern AOSACAParams *g_AOSACAParams;
 extern COptCalc		*g_optcalc;
 

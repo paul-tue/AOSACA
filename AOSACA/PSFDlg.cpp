@@ -11,6 +11,10 @@ extern AOSACAParams *g_AOSACAParams;
 #include "VecAll.h"
 #include "MatALL.h"
 
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
 
 // CPSFDlg dialog
 
@@ -178,7 +182,7 @@ void CPSFDlg::InitParam()
 	
 	Stride = ((DIBSecWidth * BitsPerPixel + 31L) & (~31L)) / 8L;	
 	
-	bmi = (BITMAPINFO *)new BYTE[sizeof(BITMAPINFO) + UCHAR_MAX * sizeof(RGBQUAD)];
+	bmi = (BITMAPINFO*)new BYTE[sizeof(BITMAPINFO) + UCHAR_MAX * sizeof(RGBQUAD)];
 	bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bmi->bmiHeader.biWidth = DIBSecWidth;
 	bmi->bmiHeader.biHeight = DIBSecHeight;

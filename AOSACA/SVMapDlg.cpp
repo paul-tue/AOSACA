@@ -6,6 +6,10 @@
 #include "SVMapDlg.h"
 #include "afxdialogex.h"
 
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
 extern CCentroid	*g_centroids;
 extern AOSACAParams	*g_AOSACAParams;
 // CSVMapDlg dialog

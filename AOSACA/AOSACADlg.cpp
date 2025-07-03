@@ -14,7 +14,7 @@
 // Global object for storing/accessing applicaiton parameters
 AOSACAParams		*g_AOSACAParams;
 
-CCamera				*g_camera;
+CCamera_IDS			*g_camera;
 CDMirror			*g_dmirror;
 CCentroid			*g_centroids;
 COptCalc			*g_optcalc;
@@ -196,20 +196,9 @@ BOOL CAOSACADlg::OnInitDialog()
 	short Y0 = 4;
 	MoveWindow(X0,Y0,MAIN_WINDOW_WIDTH,MAIN_WINDOW_HEIGHT,false);
 
-	// Creating the Camera object
-	g_camera = new CCamera(this);
-//	g_AOSACAParams->g_bCamReady = true;
-	if (!g_AOSACAParams->g_bCamReady)
-	{		
-		g_AOSACAParams->g_stAppErrBuff.Empty();
-		g_AOSACAParams->g_stAppErrBuff = "Camera/Framegrabber not connected/detected";
-		g_AOSACAParams->ShowError(MB_ICONINFORMATION);
-
-	}
 
 	//Create DM object
 	g_dmirror = new CDMirror();
-//	g_AOSACAParams->g_bDMReady = true;
 	if (!g_AOSACAParams->g_bDMReady)
 	{//add mirror details to caption
 		g_AOSACAParams->g_stAppErrBuff.Empty();
@@ -221,7 +210,7 @@ BOOL CAOSACADlg::OnInitDialog()
 		g_optcalc->UpdateDMMaxDeflection(g_AOSACAParams->DM_MAX_DEFLECTION);
 		g_optcalc->Send_Voltages(BIAS_BIT);
 	}
-	
+
 	// Create Wavefront Sensor Image dialog and initialize its params
 	RECT mainrect = CRect(5,15, 0, 0);
 	mainrect.right = mainrect.left+519;
@@ -241,7 +230,7 @@ BOOL CAOSACADlg::OnInitDialog()
 	g_controlpanel->Create(IDD_CONTROLPANEL,this);
 	g_controlpanel->MoveWindow(&mainrect, true);
 	g_controlpanel->ShowWindow(SW_SHOW);	
-
+	
 	//Slope Vector Map Dialog
 	mainrect.left = mainrect.right + 7;
 	mainrect.top -= 110;	
@@ -252,18 +241,7 @@ BOOL CAOSACADlg::OnInitDialog()
 	g_svmap->MoveWindow(&mainrect, true);
 	g_svmap->ShowWindow(SW_SHOW);
 
-	//g_wfmapDialog
-	mainrect.right = mainrect.left + 180;
-	mainrect.top = mainrect.bottom + 7;
-	mainrect.bottom = mainrect.top + 188;
-	g_wfmap = new CWFMapDlg(this);
-	g_wfmap->Create(IDD_WFMAP,this);
-	g_wfmap->MoveWindow(&mainrect, true);
-	g_wfmap->InitParam();
-	g_wfmap->SetDataPoints(g_optcalc->InitWaveMatrix(g_wfmap->m_bData));
-	g_wfmap->ShowWindow(SW_SHOW);
-
-	//PDF Dialog
+	//PSF Dialog
 	mainrect.left = mainrect.right + 7;
 	mainrect.right = mainrect.left + 167;
 	g_psfmap = new CPSFDlg(this);
@@ -271,6 +249,18 @@ BOOL CAOSACADlg::OnInitDialog()
 	g_psfmap->MoveWindow(&mainrect, true);
 	g_psfmap->ShowWindow(SW_SHOW);		
 	g_psfmap->InitParam();
+
+	
+	
+
+	// Creating the Camera object
+	g_camera = new CCamera_IDS(this);
+	if (!g_AOSACAParams->g_bCamReady)
+	{		
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = "Camera/Framegrabber not connected/detected";
+		g_AOSACAParams->ShowError(MB_ICONINFORMATION);
+	}
 
 	//DM Map Dialog
 	mainrect.left = 5;
@@ -296,9 +286,25 @@ BOOL CAOSACADlg::OnInitDialog()
 	mainrect.left = mainrect.right + 7;
 	mainrect.right = mainrect.left+663;
 	g_rtplot = new CRTPlotDlg(this);
-	g_rtplot->Create(IDD_RTPLOT,this);
-	g_rtplot->MoveWindow(&mainrect, true);
-	g_rtplot->ShowWindow(SW_SHOW);
+	//g_rtplot->Create(IDD_RTPLOT,this);
+	//g_rtplot->MoveWindow(&mainrect, true);
+	//g_rtplot->ShowWindow(SW_SHOW);
+
+	//g_wfmapDialog
+	mainrect.right = mainrect.left + 180;
+	mainrect.top = mainrect.bottom + 7;
+	mainrect.bottom = mainrect.top + 188;
+	g_wfmap = new CWFMapDlg(this);
+	g_wfmap->Create(IDD_WFMAP, this);
+	g_wfmap->MoveWindow(&mainrect, true);
+	g_wfmap->InitParam();
+	// manual debug: check if pointer exists
+	OutputDebugStringA("Calling SetDataPoints...\n");
+	if (!g_wfmap) {
+		OutputDebugStringA("g_wfmap is NULL!\n");
+	}
+	g_wfmap->SetDataPoints(g_optcalc->InitWaveMatrix(g_wfmap->m_bData));
+	g_wfmap->ShowWindow(SW_SHOW);
 
 	//Create an object for thread class
 	g_dmaothread = new CThreadClass();
@@ -318,7 +324,7 @@ BOOL CAOSACADlg::OnInitDialog()
 	g_AOSACAParams->g_bDrawCentroids = true;
 	
 	m_Statusbar.Create(WS_CHILD|WS_VISIBLE|CCS_BOTTOM|SBARS_SIZEGRIP, CRect(0,0,0,0), this, IDS_STATUSBAR);
-
+	
 	SetEvent(g_AOSACAParams->g_ehCamLive);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
@@ -327,7 +333,7 @@ BOOL CAOSACADlg::OnInitDialog()
 LRESULT CAOSACADlg::OnUpdateWindow(WPARAM wParam, LPARAM lParam)
 {
 //	m_msgID = lParam;
-
+	/*
 	switch (lParam) {
 	case UPDATE_WINDOW:		
 		Update_Displays();
@@ -351,6 +357,7 @@ LRESULT CAOSACADlg::OnUpdateWindow(WPARAM wParam, LPARAM lParam)
 	default:
 		break;
 	}
+	*/
 	
 	return 0;
 }
@@ -584,6 +591,7 @@ bool CAOSACADlg::LocateOneCentroid (short id)
 	RECT CentDispRect;
 	CWnd *hCentroidDisplayArea=get_DisplayHandle();
 	hCentroidDisplayArea->GetWindowRect(&CentDispRect);
+	std::lock_guard<std::mutex>(g_camera->m_imgMutex);
 	memcpy(g_AOSACAParams->g_pLocalImgBuff, g_AOSACAParams->g_pImgBuffPrc, (g_AOSACAParams->IMAGE_WIDTH_PIX)*(g_AOSACAParams->IMAGE_HEIGHT_PIX));
 	g_centroids->LocateOneCentroid(g_AOSACAParams->g_pLocalImgBuff, id);
 	g_wfsimg->m_bDrawSearchBoxes = true;
@@ -594,6 +602,7 @@ bool CAOSACADlg::LocateOneCentroid (short id)
 bool CAOSACADlg::LocateCentroids (void)
 {
 	bool centstatus = false, imagestatus=true; // assume false until everything is ok
+	std::lock_guard<std::mutex>(g_camera->m_imgMutex);
 	memcpy(g_AOSACAParams->g_pLocalImgBuff, g_AOSACAParams->g_pImgBuffPrc, (g_AOSACAParams->IMAGE_WIDTH_PIX)*(g_AOSACAParams->IMAGE_HEIGHT_PIX));
 	centstatus = g_centroids->LocateAllCentroid(g_AOSACAParams->g_pLocalImgBuff);
 

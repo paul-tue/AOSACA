@@ -420,7 +420,7 @@ public:
 			CAMGAIN_DB = 8;
 			MICRONS_PER_PIXEL = 12.;
 			// DM Parameters
-			DM_SERIAL_NO = _T("BAL119");			
+			DM_SERIAL_NO = _T("BAX404");			
 			DM_MAX_DEFLECTION = 0.25;
 			DM_POKE_MAT_MAX_DEF = 0.1;
 			DMGRID = 11;

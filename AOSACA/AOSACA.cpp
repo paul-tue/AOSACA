@@ -44,6 +44,16 @@ CAOSACAApp theApp;
 
 BOOL CAOSACAApp::InitInstance()
 {
+
+#ifdef _DEBUG
+	// Enable debug heap and leak checking
+	int tmpFlag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
+	tmpFlag |= _CRTDBG_ALLOC_MEM_DF;     // Enable debug heap
+	tmpFlag |= _CRTDBG_LEAK_CHECK_DF;    // Dump memory leaks on exit
+	tmpFlag |= _CRTDBG_CHECK_ALWAYS_DF;  // Check heap consistency on every alloc/free
+	_CrtSetDbgFlag(tmpFlag);
+#endif
+
 	// InitCommonControlsEx() is required on Windows XP if an application
 	// manifest specifies use of ComCtl32.dll version 6 or later to enable
 	// visual styles.  Otherwise, any window creation will fail.
@@ -79,7 +89,7 @@ BOOL CAOSACAApp::InitInstance()
 	// Change the registry key under which our settings are stored
 	// TODO: You should modify this string to be something appropriate
 	// such as the name of your company or organization
-	SetRegistryKey(_T("Roorda Lab, UC Berkeley"));
+	SetRegistryKey(_T("Schwarz Lab, FIA Tuebingen"));
 	
 	m_WinMsg_ui=RegisterWindowMessage(_T("APPEXISTS"));
 	m_Mutex_h=::CreateMutex(NULL, FALSE, _T("{AOSACA-00C269EA-B1B6-4342-BE89-698DD933B95F}"));

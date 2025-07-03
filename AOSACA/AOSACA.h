@@ -35,7 +35,7 @@ using namespace Gdiplus;
 #include "AOSACAParams.h"
 
 //Include any other supporting header files
-#include "Camera.h"
+#include "Camera_IDS.h"
 #include "DMirror.h"
 #include "Centroid.h"
 #include "OptCalc.h"

@@ -737,6 +737,9 @@
     <ClInclude Include="..\Baumer\Components\Dev\C++\Inc\bgapi2_genicam.hpp">
       <Filter>Camera</Filter>
     </ClInclude>
+    <ClInclude Include="Camera_IDS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AOSACA.cpp">
@@ -810,6 +813,9 @@
     </ClCompile>
     <ClCompile Include="..\NetCom\SockClient.cpp">
       <Filter>NetCom</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera_IDS.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

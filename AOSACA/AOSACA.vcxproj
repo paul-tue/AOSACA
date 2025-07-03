@@ -22,7 +22,7 @@
     <ProjectGuid>{A72E9A1B-42E1-4D65-A65B-4B70847907DA}</ProjectGuid>
     <RootNamespace>AOSACA</RootNamespace>
     <Keyword>MFCProj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -36,7 +36,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Dynamic</UseOfMfc>
+    <UseOfMfc>Static</UseOfMfc>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -78,14 +78,17 @@
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
+    <LinkIncremental>
+    </LinkIncremental>
     <LibraryPath>
     </LibraryPath>
     <TargetName>$(ProjectName)D</TargetName>
-    <IncludePath>$(WindowsSDK_IncludePath);$(VC_IncludePath);$(ProjectDir)</IncludePath>
-    <ExcludePath>$(WindowsSDK_IncludePath);$(VC_IncludePath);$(MSBuild_ExecutablePath);$(VC_LibraryPath_x64);</ExcludePath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(IncludePath);$(ProjectDir)</IncludePath>
+    <ExcludePath>$(ExcludePath);$(SystemRoot)</ExcludePath>
     <OutDir>$(SolutionDir)$(PlatformShortName)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformShortName)\$(Configuration)\</IntDir>
+    <GenerateManifest>true</GenerateManifest>
+    <ExecutablePath>C:\Program Files (x86)\Windows Kits\10\bin\10.0.17134.0\x64;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -94,13 +97,15 @@
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>
+    </LinkIncremental>
     <IncludePath>$(WindowsSDK_IncludePath);$(IncludePath);$(ProjectDir)</IncludePath>
     <LibraryPath>
     </LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformShortName)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformShortName)\$(Configuration)\</IntDir>
     <ExecutablePath>C:\Program Files (x86)\Windows Kits\10\bin\10.0.17134.0\x64;$(ExecutablePath)</ExecutablePath>
+    <GenerateManifest>true</GenerateManifest>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -140,15 +145,20 @@ copy $(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll $(SolutionDir)
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)FreeImage;$(SolutionDir)OpenCV\include;$(SolutionDir)Baumer\Inc;$(SolutionDir)Alpao\include;$(SolutionDir)OptiVec\include;$(SolutionDir)NetCom;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)opencv2;$(SolutionDir)FreeImage;$(SolutionDir)OpenCV\include;$(SolutionDir)Baumer\Inc;$(SolutionDir)Alpao\include;$(SolutionDir)OptiVec\include;$(SolutionDir)NetCom;$(SolutionDir)IDS\api\include\;$(SolutionDir)IDS\ipl\include\;$(SolutionDir)OpenCV\lib\x64</AdditionalIncludeDirectories>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>FreeImage.lib;ovvc64_8m.lib;ovvc14x64mdd.lib;ASDK.lib;Winmm.lib;vfw32.lib;bgapi2_genicam.lib;opencv_world410d.lib;opengl32.lib;glu32.lib;ntdll.lib</AdditionalDependencies>
+      <AdditionalDependencies>ovvc64_8m.lib;ovvc14x64mdr.lib;ASDK.lib;Winmm.lib;vfw32.lib;bgapi2_genicam.lib;opencv_world410d.lib;opengl32.lib;glu32.lib;ntdll.lib;FreeImage.lib;ids_peak.lib;ids_peak_ipl.lib</AdditionalDependencies>
       <DelayLoadDLLs>
       </DelayLoadDLLs>
-      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);$(SolutionDir)Alpao\Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Baumer\Lib\x64;$(SolutionDir)opencv\lib\x64;$(SolutionDir)\Optivec\lib\x64;$(SolutionDir)FreeImage</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);$(SolutionDir)Alpao\Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Baumer\Lib\x64;$(SolutionDir)opencv\lib\x64;$(SolutionDir)\OptiVec\lib\x64;$(SolutionDir)FreeImage;$(IDS_PEAK_GENERIC_SDK_PATH)\api\lib\x86_64\;$(IDS_PEAK_GENERIC_SDK_PATH)\ipl\lib\x86_64\;$(IDS_PEAK_GENERIC_SDK_PATH)\&lt;%PATH-VARIABLE-AFL%&gt;\lib\x86_64\;ids_peak.lib;ids_peak_ipl.lib;&lt;%PYTHON-PATH-AFL%&gt;.lib</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -161,12 +171,8 @@ copy $(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll $(SolutionDir)
     </ResourceCompile>
     <PostBuildEvent />
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)FreeImage\FreeImage.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)FreeImage\vcomp100.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)Alpao\lib\$(PlatformShortName)\ASDK.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)Baumer\bin\$(PlatformShortName)\bgapi2_genicam.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)OpenCV\bin\$(PlatformShortName)\opencv_world410d.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -212,17 +218,18 @@ copy $(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll $(SolutionDir)
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)opencv2;$(SolutionDir)FreeImage;$(SolutionDir)OpenCV\include;$(SolutionDir)Baumer\Inc;$(SolutionDir)Alpao\include;$(SolutionDir)OptiVec\include;$(SolutionDir)NetCom;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)opencv2;$(SolutionDir)FreeImage;$(SolutionDir)OpenCV\include;$(SolutionDir)Baumer\Inc;$(SolutionDir)Alpao\include;$(SolutionDir)OptiVec\include;$(SolutionDir)NetCom;$(IDS_PEAK_GENERIC_SDK_PATH)\api\include\;$(IDS_PEAK_GENERIC_SDK_PATH)\ipl\include\;$(IDS_PEAK_GENERIC_SDK_PATH)\&lt;%PATH-VARIABLE-AFL%&gt;\include\</AdditionalIncludeDirectories>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <AdditionalOptions>/bigobj%(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>ovvc64_8m.lib;ovvc14x64mdr.lib;ASDK.lib;Winmm.lib;vfw32.lib;bgapi2_genicam.lib;opencv_world410.lib;opengl32.lib;glu32.lib;ntdll.lib;FreeImage.lib</AdditionalDependencies>
+      <AdditionalDependencies>ovvc64_8m.lib;ovvc14x64mdr.lib;ASDK.lib;Winmm.lib;vfw32.lib;bgapi2_genicam.lib;opencv_world410.lib;opengl32.lib;glu32.lib;ntdll.lib;FreeImage.lib;ids_peak.lib;ids_peak_ipl.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);$(SolutionDir)Alpao\Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Baumer\Lib\x64;$(SolutionDir)opencv\lib\x64;$(SolutionDir)\OptiVec\lib\x64;$(SolutionDir)FreeImage</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);$(SolutionDir)Alpao\Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Baumer\Lib\x64;$(SolutionDir)opencv\lib\x64;$(SolutionDir)\OptiVec\lib\x64;$(SolutionDir)FreeImage;$(IDS_PEAK_GENERIC_SDK_PATH)\api\lib\x86_64\;$(IDS_PEAK_GENERIC_SDK_PATH)\ipl\lib\x86_64\;$(IDS_PEAK_GENERIC_SDK_PATH)\&lt;%PATH-VARIABLE-AFL%&gt;\lib\x86_64\;ids_peak.lib;ids_peak_ipl.lib;&lt;%PYTHON-PATH-AFL%&gt;.lib</AdditionalLibraryDirectories>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -235,12 +242,8 @@ copy $(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll $(SolutionDir)
     </ResourceCompile>
     <PostBuildEvent />
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)FreeImage\FreeImage.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)FreeImage\vcomp100.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)Alpao\lib\$(PlatformShortName)\ASDK.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)Baumer\bin\$(PlatformShortName)\bgapi2_genicam.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"
-copy "$(SolutionDir)OpenCV\bin\$(PlatformShortName)\opencv_world410.dll" "$(SolutionDir)$(PlatformShortName)\$(Configuration)\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -520,6 +523,7 @@ echo.
     <ClInclude Include="AOSACAParams.h" />
     <ClInclude Include="AOSACAParamsDlg.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Camera_IDS.h" />
     <ClInclude Include="Centroid.h" />
     <ClInclude Include="ControlPanelDlg.h" />
     <ClInclude Include="DMirror.h" />
@@ -640,6 +644,7 @@ makehm /h /a afxhh.h IDW_,HIDW_,0x50000 "%(FullPath)" &gt;&gt; "hlp\HTMLDefines.
     <ClCompile Include="AOSACADlg.cpp" />
     <ClCompile Include="AOSACAParamsDlg.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Camera_IDS.cpp" />
     <ClCompile Include="Centroid.cpp" />
     <ClCompile Include="ControlPanelDlg.cpp" />
     <ClCompile Include="DMirror.cpp" />
