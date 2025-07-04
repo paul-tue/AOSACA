@@ -146,8 +146,11 @@ bool CCamera_IDS::Camera_Initialization()
 	int64_t h_max = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->Maximum();
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue(0);
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue(0);
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(w_max);
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(h_max);
+	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(1920);
+	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(1200);
+	
+	//OutputDebugStringA(("set camera ROI: (w, h) " + std::to_string(w_max) +
+	//	", " + std::to_string(h_max) + "\n").c_str());
 
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry("Mono8");
 
@@ -206,6 +209,11 @@ bool CCamera_IDS::Camera_Initialization()
 
 	// debug test
 	int expectedSize = g_AOSACAParams->IMAGE_WIDTH_PIX * g_AOSACAParams->IMAGE_HEIGHT_PIX;
+
+	OutputDebugStringA(("AOSACA size params: " + std::to_string(g_AOSACAParams->IMAGE_WIDTH_PIX) + 
+		", " + std::to_string(g_AOSACAParams->IMAGE_HEIGHT_PIX) + "\n").c_str());
+	OutputDebugStringA(("Camera size params: " + std::to_string(width) +
+		", " + std::to_string(height) + "\n").c_str());
 
 	if (m_nFrameSizeInBytes != expectedSize) {
 		OutputDebugStringA("!!! SIZE MISMATCH !!!\n");
