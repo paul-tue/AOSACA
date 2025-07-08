@@ -19,8 +19,6 @@ CCamera_IDS::CCamera_IDS(CAOSACADlg* parent)
 	m_pParent = parent;
 	m_pImgBuff = NULL;
 	m_pBkgndBuff = NULL;
-	// there is no need for a global buffer (?)
-	// peak::core::Buffer* m_pBuffer;
 
 	try {
 		// Initialize library
@@ -49,6 +47,7 @@ CCamera_IDS::CCamera_IDS(CAOSACADlg* parent)
 }
 
 CCamera_IDS::~CCamera_IDS(void)
+// TODO: fix destructor (peak::internal::InternalErrorException)
 {
 	if (g_AOSACAParams->g_bCamReady)
 	{
@@ -57,25 +56,73 @@ CCamera_IDS::~CCamera_IDS(void)
 		SetEvent(m_ehCamThreadClose);
 		::WaitForSingleObject(m_ehCamThreadShutdown, g_AOSACAParams->EXPOSURE_MS * 2);
 
-		// Stop capturing images
-		m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStop")->Execute();
-		m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TLParamsLocked")->SetValue(0);
-		m_pDataStream->StopAcquisition(peak::core::AcquisitionStopMode::Default);
-
-		// clear camera buffers
-		if (m_pDataStream)
+		if (m_pNodeMapRemoteDevice)
 		{
-			m_pDataStream->Flush(peak::core::DataStreamFlushMode::DiscardAll);
+			// Stop acquisition
+			auto acqStopNode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStop");
+			if (acqStopNode && acqStopNode->IsAvailable() && acqStopNode->IsWriteable())
+				acqStopNode->Execute();
 
-			for (const auto& buffer : m_pDataStream->AnnouncedBuffers())
-			{
-				m_pDataStream->RevokeBuffer(buffer);
-			}
+			auto tlLockedNode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TLParamsLocked");
+			if (tlLockedNode)
+				tlLockedNode->SetValue(0);
 		}
-		// Disconnect the camera
-		m_pDevice.reset();
-		// Close IDS peak library
-		peak::Library::Close();
+
+		try
+		{
+			if (m_pDataStream)
+			{
+				try 
+				{
+					m_pDataStream->StopAcquisition(peak::core::AcquisitionStopMode::Default);
+				}
+				catch (const peak::core::Exception& e) 
+				{
+					OutputDebugStringA(("Warning: StopAcquisition failed: " + std::string(e.what()) + "\n").c_str());
+				}
+
+				try 
+				{
+					m_pDataStream->Flush(peak::core::DataStreamFlushMode::DiscardAll);
+				}
+				catch (const peak::core::Exception& e) 
+				{
+					OutputDebugStringA(("Warning: Flush failed: " + std::string(e.what()) + "\n").c_str());
+				}
+
+				auto buffers = m_pDataStream->AnnouncedBuffers();
+				for (const auto& buffer : buffers)
+				{
+					m_pDataStream->RevokeBuffer(buffer);
+				}				
+
+				try 
+				{
+					m_pDataStream.reset();  // <-- still throwing exception
+				}
+				catch (const peak::core::Exception& e) 
+				{
+					g_AOSACAParams->g_stAppErrBuff.Empty();
+					g_AOSACAParams->g_stAppErrBuff = "Datastream could not be closed properly!";
+					g_AOSACAParams->ShowError(MB_ICONERROR);
+				}
+			}
+			try 
+			{
+				m_pDevice.reset();
+			}
+			catch (const peak::core::Exception& e) 
+			{
+				g_AOSACAParams->g_stAppErrBuff.Empty();
+				g_AOSACAParams->g_stAppErrBuff = "Device could not be closed properly!";
+				g_AOSACAParams->ShowError(MB_ICONERROR);
+			}
+
+		}
+		catch (const peak::core::Exception& e)
+		{
+			OutputDebugStringA(("Unhandled exception in camera destructor: " + std::string(e.what()) + "\n").c_str());
+		}
 
 		CloseHandle(g_AOSACAParams->g_ehCamNewFrame);
 		CloseHandle(g_AOSACAParams->g_ehCamSnap);
@@ -98,7 +145,17 @@ CCamera_IDS::~CCamera_IDS(void)
 bool CCamera_IDS::Camera_Initialization()
 {
 	auto& m_pDeviceManager = peak::DeviceManager::Instance();
-	m_pDeviceManager.Update();
+	try
+	{
+		m_pDeviceManager.Update();
+	}
+	catch (const peak::core::Exception)
+	{
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = "The device manager could not be initialized.\nMake sure you installed the IDS libraries.";
+		g_AOSACAParams->ShowError(MB_ICONERROR);
+		return false;
+	}
 
 	if (m_pDeviceManager.Devices().empty())
 	{
@@ -125,6 +182,7 @@ bool CCamera_IDS::Camera_Initialization()
 		g_AOSACAParams->g_stAppErrBuff = "Camera can not be opened!\n Make sure no other program is using the camera.";
 		g_AOSACAParams->ShowError(MB_ICONERROR);
 		peak::Library::Close();
+		return false;
 	}
 
 	// prepare data streams
@@ -140,20 +198,53 @@ bool CCamera_IDS::Camera_Initialization()
 	m_pDataStream = m_pDevice->DataStreams().at(0)->OpenDataStream();
 	m_pNodemapDataStream = m_pDataStream->NodeMaps().at(0);
 
+	// BINNING
+	auto binningSelector = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningSelector");
+	binningSelector->SetCurrentEntry("Region0");  // binning happening on camera FPGA
 
-	// set ROI (max ROI in this case) for buffer size
-	int64_t w_max = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->Maximum();
-	int64_t h_max = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->Maximum();
+	// Set binning modes (only if the camera supports this)
+	auto binningHorizontalMode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningHorizontalMode");
+	if (binningHorizontalMode && binningHorizontalMode->IsWriteable())
+		binningHorizontalMode->SetCurrentEntry("Average");
+
+	auto binningVerticalMode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningVerticalMode");
+	if (binningVerticalMode && binningVerticalMode->IsWriteable())
+		binningVerticalMode->SetCurrentEntry("Average");
+
+	// Set binning factors
+	auto binningHorizontal = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("BinningHorizontal");
+	if (binningHorizontal && binningHorizontal->IsWriteable())
+		binningHorizontal->SetValue(2);
+
+	auto binningVertical = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("BinningVertical");
+	if (binningVertical && binningVertical->IsWriteable())
+		binningVertical->SetValue(2);
+
+	// set ROI for buffer size (consider that binning is active!)
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue(0);
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue(0);
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(1920);
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(1200);
-	
-	//OutputDebugStringA(("set camera ROI: (w, h) " + std::to_string(w_max) +
-	//	", " + std::to_string(h_max) + "\n").c_str());
-
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry("Mono8");
-
+	try
+	{
+		m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(g_AOSACAParams->IMAGE_WIDTH_PIX);
+	}
+	catch (peak::core::OutOfRangeException)
+	{
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = "Width setting out of range for this sensor!";
+		g_AOSACAParams->ShowError(MB_ICONERROR);
+		return false;
+	}
+	try
+	{
+		m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(g_AOSACAParams->IMAGE_HEIGHT_PIX);
+	}
+		catch (peak::core::OutOfRangeException)
+	{
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = "Height setting out of range for this sensor!";
+		g_AOSACAParams->ShowError(MB_ICONERROR);
+		return false;
+	}
 
 	if (m_pDataStream)
 	{
@@ -209,19 +300,11 @@ bool CCamera_IDS::Camera_Initialization()
 
 	// debug test
 	int expectedSize = g_AOSACAParams->IMAGE_WIDTH_PIX * g_AOSACAParams->IMAGE_HEIGHT_PIX;
-
-	OutputDebugStringA(("AOSACA size params: " + std::to_string(g_AOSACAParams->IMAGE_WIDTH_PIX) + 
-		", " + std::to_string(g_AOSACAParams->IMAGE_HEIGHT_PIX) + "\n").c_str());
-	OutputDebugStringA(("Camera size params: " + std::to_string(width) +
-		", " + std::to_string(height) + "\n").c_str());
-
 	if (m_nFrameSizeInBytes != expectedSize) {
 		OutputDebugStringA("!!! SIZE MISMATCH !!!\n");
 		OutputDebugStringA(("Expected: " + std::to_string(expectedSize) + "\n").c_str());
 		OutputDebugStringA(("Payload:  " + std::to_string(m_nFrameSizeInBytes) + "\n").c_str());
 	}
-	// just for safety
-	// memset(g_AOSACAParams->g_pImgBuffPrc, 0, m_nFrameSizeInBytes);
 
 	// commented as this is only applicable for Baumer cameras, will implement later for IDS camera
 	//Load background image into buffer if available
@@ -239,22 +322,28 @@ bool CCamera_IDS::Camera_Initialization()
 
 bool CCamera_IDS::UpdateExposureTime(void)
 {
-	double exp;
-	exp = g_AOSACAParams->EXPOSURE_MS * 1000;
+	double exp_us;
+	exp_us = g_AOSACAParams->EXPOSURE_MS * 1000;
 
-	double minExposureTime = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->Minimum();
-	double maxExposureTime = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->Maximum();
+	double minExposureTime = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->Minimum() / 1000;
+	double maxExposureTime = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->Maximum() / 1000;
 
-	if (exp > maxExposureTime)
+	OutputDebugStringA(("Minimum exposure time: " + std::to_string(minExposureTime) + " ms\n").c_str());
+	OutputDebugStringA(("Maximum exposure time: " + std::to_string(maxExposureTime) + " ms\n").c_str());
+	OutputDebugStringA(("\nTrying to set new exposure time " + std::to_string(exp_us/1000) + " ms\n").c_str());
+
+	/*
+	if (exp_us > maxExposureTime)
 	{
-		exp = maxExposureTime;
+		exp_us = maxExposureTime;
 	}
-	if (exp < minExposureTime)
+	if (exp_us < minExposureTime)
 	{
-		exp = minExposureTime;
+		exp_us = minExposureTime;
+		OutputDebugStringA(("Trying to set an exposure time too low\n " + std::to_string(1)).c_str());
 	}
-
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(exp);
+	*/
+	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(exp_us);
 
 	return true;
 }
@@ -262,7 +351,16 @@ bool CCamera_IDS::UpdateExposureTime(void)
 bool CCamera_IDS::UpdateCameraGain(void)
 {
 	double gain = g_AOSACAParams->CAMGAIN_DB;
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gain")->SetValue(gain);
+	try
+	{
+		m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gain")->SetValue(gain);
+	}
+	catch (peak::core::OutOfRangeException)
+	{
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = "Selected Gain value out of range for this camera model!";
+		g_AOSACAParams->ShowError(MB_ICONERROR);
+	}
 
 	return true;
 }
@@ -312,7 +410,6 @@ void CCamera_IDS::CatchFrame(void)
 			OutputDebugStringA("Payload size exceeds allocated buffer!\n");
 		}
 
-		std::lock_guard<std::mutex> lock(m_imgMutex);
 		memcpy(g_AOSACAParams->g_pImgBuffPrc, pRawImageData, payloadSize);
 	}
 

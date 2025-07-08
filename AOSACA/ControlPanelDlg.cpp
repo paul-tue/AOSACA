@@ -272,7 +272,7 @@ BOOL CControlPanelDlg::OnInitDialog()
 	m_eLength.Create(WS_CHILD | WS_VISIBLE | ES_CENTER | WS_BORDER | WS_TABSTOP | ES_AUTOHSCROLL | ES_NUMBER,  
 					 rect, this, IDE_CONTROL_ICANDI_RECORD_DURATION);
 
-	m_eCamExp.SetValidation(MYEDIT_INTEGER, g_AOSACAParams->EXPOSURE_MS, 15, 180, 3, -1, false);
+	m_eCamExp.SetValidation(MYEDIT_INTEGER, g_AOSACAParams->EXPOSURE_MS, 1, 180, 3, -1, false);
 	m_eCamGain.SetValidation(MYEDIT_INTEGER, g_AOSACAParams->CAMGAIN_DB, 0, 20, 2, -1, false);
 	m_eCentThreshold.SetValidation(MYEDIT_INTEGER, g_AOSACAParams->THRESHOLD, 1, 255, 3, -1, false);
 	m_eMinCent.SetValidation(MYEDIT_INTEGER, m_MinCent, 0, 0, 3, false) ;

@@ -99,7 +99,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>
     </LinkIncremental>
-    <IncludePath>$(WindowsSDK_IncludePath);$(IncludePath);$(ProjectDir)</IncludePath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(ProjectDir);$(IncludePath)</IncludePath>
     <LibraryPath>
     </LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformShortName)\$(Configuration)\</OutDir>
@@ -218,7 +218,7 @@ copy $(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll $(SolutionDir)
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)opencv2;$(SolutionDir)FreeImage;$(SolutionDir)OpenCV\include;$(SolutionDir)Baumer\Inc;$(SolutionDir)Alpao\include;$(SolutionDir)OptiVec\include;$(SolutionDir)NetCom;$(IDS_PEAK_GENERIC_SDK_PATH)\api\include\;$(IDS_PEAK_GENERIC_SDK_PATH)\ipl\include\;$(IDS_PEAK_GENERIC_SDK_PATH)\&lt;%PATH-VARIABLE-AFL%&gt;\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)opencv2;$(SolutionDir)FreeImage;$(SolutionDir)OpenCV\include;$(SolutionDir)Baumer\Inc;$(SolutionDir)Alpao\include;$(SolutionDir)OptiVec\include;$(SolutionDir)NetCom;$(SolutionDir)IDS\api\include\;$(SolutionDir)IDS\ipl\include\</AdditionalIncludeDirectories>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
       <AdditionalOptions>/bigobj%(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

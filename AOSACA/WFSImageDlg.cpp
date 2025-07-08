@@ -148,12 +148,10 @@ void CWFSImageDlg::OnPaint()
 		BYTE *pCurRowPixel = (BYTE *)(pDIBSectionBits);
 		if (g_AOSACAParams->g_last_click == LIVE || g_AOSACAParams->g_last_click == SNAP)
 		{
-			std::lock_guard<std::mutex>(g_camera->m_imgMutex);
 			memcpy(pCurRowPixel, g_AOSACAParams->g_pImgBuffPrc, DIBSecWidth * DIBSecHeight);
 		}
 		else
 		{
-			std::lock_guard<std::mutex>(g_camera->m_imgMutex);
 			memcpy(pCurRowPixel, g_AOSACAParams->g_pLocalImgBuff, DIBSecWidth * DIBSecHeight);
 		}
 	

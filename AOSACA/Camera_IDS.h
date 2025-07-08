@@ -2,7 +2,6 @@
 
 #include <peak/peak.hpp>
 #include "AOSACADlg.h"
-#include <mutex>
 
 class CCamera_IDS
 {
@@ -40,7 +39,6 @@ private:
     static DWORD WINAPI CamThread(LPVOID pParam);
 
 public:
-    std::mutex m_imgMutex;
     CCamera_IDS(CAOSACADlg* parent);
     ~CCamera_IDS(void);
     void CatchFrame(void);
