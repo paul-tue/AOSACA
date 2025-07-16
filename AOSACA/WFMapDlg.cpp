@@ -24,9 +24,6 @@ CWFMapDlg::CWFMapDlg(CWnd* pParent /*=NULL*/)
 	m_usDataGrid = NULL;
 	m_bData		= NULL;
 
-	OutputDebugStringA(">>> Entered CWFMapDlg constructor\n");
-	// check common globals
-	if (!g_AOSACAParams->g_pImgBuffPrc) OutputDebugStringA(">>> g_pImgBuffPrc is NULL\n");
 }
 
 CWFMapDlg::~CWFMapDlg()
@@ -196,11 +193,13 @@ void CWFMapDlg::InitParam()
 	DIBSecWidth = g_AOSACAParams->WAVE_WIDTH_PIX;
 	DIBSecHeight = g_AOSACAParams->WAVE_WIDTH_PIX;
 
-	int N = g_AOSACAParams->LENSLETGRID;
-	m_bData = new bool[N *  4 * N * 4];
-	ZeroMemory(m_bData, (N * 4 * N * 4) * sizeof(bool));
-	//m_bData = new bool [DIBSecWidth*DIBSecHeight];	
-	//ZeroMemory(m_bData,(DIBSecWidth*DIBSecHeight)*sizeof(bool));
+	// this implementation works
+	//int N = g_AOSACAParams->LENSLETGRID;
+	//m_bData = new bool[N *  4 * N * 4];
+	//ZeroMemory(m_bData, (N * 4 * N * 4) * sizeof(bool));
+
+	m_bData = new bool [DIBSecWidth*DIBSecHeight];	
+	ZeroMemory(m_bData,(DIBSecWidth*DIBSecHeight)*sizeof(bool));
 	
 	Stride = ((DIBSecWidth * BitsPerPixel + 31L) & (~31L)) / 8L;	
 	

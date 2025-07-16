@@ -1,7 +1,8 @@
 #pragma once
-#define PUPIL_CAM_WIDTH		320
-#define PUPIL_CAM_HEIGHT	240
+#define PUPIL_CAM_WIDTH		640
+#define PUPIL_CAM_HEIGHT	480
 #include "afxwin.h"
+#include <opencv2/highgui.hpp>
 // CPupilView dialog
 
 class CPupilView : public CDialogEx
@@ -9,22 +10,27 @@ class CPupilView : public CDialogEx
 	DECLARE_DYNAMIC(CPupilView)
 
 public:
-	CPupilView(CWnd* pParent = NULL);   // standard constructor
+	CPupilView(CWnd* pParent = NULL);
 	virtual ~CPupilView();
-	HWND		hPupilCamWindow;	// handle for capture window
-	bool		m_bHasVideoDlg;		// flag to identify whether a camera is present and if a video settingsdialog is present
-	bool		OnEditPupilcamerasettings();// function to update camera settings
+	cv::VideoCapture	m_cap;
+	std::atomic_bool	m_stopCapture{ false };
+	std::thread			m_captureThread;
+	cv::Mat				m_latestFrame;
+	std::mutex			m_frameMutex;
+	CStatic				m_ImageDisp;
 	
 // Dialog Data
 	enum { IDD = IDD_PUPILVIEW };
 
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-
+	virtual void DoDataExchange(CDataExchange* pDX);
 	DECLARE_MESSAGE_MAP()
+
 public:
 	afx_msg void OnClose();
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	LRESULT OnFrameUpdate(WPARAM, LPARAM);
+	void OnPaint();
+	cv::Mat FindAndDrawPupil(const cv::Mat&);
 	virtual BOOL OnInitDialog();
-	CStatic m_ImageDisp;
 };

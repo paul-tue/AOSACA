@@ -197,6 +197,7 @@ bool CCamera_IDS::Camera_Initialization()
 
 	m_pDataStream = m_pDevice->DataStreams().at(0)->OpenDataStream();
 	m_pNodemapDataStream = m_pDataStream->NodeMaps().at(0);
+	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry("Mono8");
 
 	// BINNING
 	auto binningSelector = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningSelector");

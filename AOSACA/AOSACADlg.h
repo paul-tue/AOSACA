@@ -90,7 +90,7 @@ public:
 	afx_msg void OnViewRealtimeplots();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnToolsAligndm();
-	afx_msg void OnEditPupilcamerasettings();
+	//afx_msg void OnEditPupilcamerasettings();
 	afx_msg void OnHelpAboutaosaca();
 	afx_msg void OnToolsSavemirrorshape();
 	virtual BOOL DestroyWindow();

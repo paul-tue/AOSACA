@@ -119,7 +119,7 @@ BEGIN_MESSAGE_MAP(CAOSACADlg, CDialogEx)
 	ON_COMMAND(ID_VIEW_DMMAP, &CAOSACADlg::OnViewDmmap)
 	ON_COMMAND(ID_VIEW_REALTIMEPLOTS, &CAOSACADlg::OnViewRealtimeplots)
 	ON_COMMAND(ID_TOOLS_ALIGNDM, &CAOSACADlg::OnToolsAligndm)
-	ON_COMMAND(ID_EDIT_PUPILCAMERASETTINGS, &CAOSACADlg::OnEditPupilcamerasettings)
+	//ON_COMMAND(ID_EDIT_PUPILCAMERASETTINGS, &CAOSACADlg::OnEditPupilcamerasettings)
 	ON_COMMAND(ID_HELP_ABOUTAOSACA, &CAOSACADlg::OnHelpAboutaosaca)
 	ON_COMMAND(ID_TOOLS_SAVEMIRRORSHAPE, &CAOSACADlg::OnToolsSavemirrorshape)
 	ON_WM_SHOWWINDOW()
@@ -194,6 +194,10 @@ BOOL CAOSACADlg::OnInitDialog()
 	scrHeight=GetSystemMetrics(SM_CYFULLSCREEN);*/
 	short X0 = 4;
 	short Y0 = 4;
+	// correcting for main window blank space
+	LONG style = GetWindowLong(this->m_hWnd, GWL_STYLE);
+	SetWindowPos(NULL, 0, 0, MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT,
+		SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
 	MoveWindow(X0, Y0, MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT, false);
 	
 	// Creating the Camera object
@@ -286,9 +290,9 @@ BOOL CAOSACADlg::OnInitDialog()
 	mainrect.right = mainrect.left + 336;
 	mainrect.bottom = mainrect.top + 310;
 	g_pupilview = new CPupilView(this);
-	//g_pupilview->Create(IDD_PUPILVIEW,this);
-	//g_pupilview->MoveWindow(&mainrect, true);
-	//g_pupilview->ShowWindow(SW_SHOW);
+	g_pupilview->Create(IDD_PUPILVIEW,this);
+	g_pupilview->MoveWindow(&mainrect, true);
+	g_pupilview->ShowWindow(SW_SHOW);
 
 	//Real-Time Plot dialog
 	mainrect.left = mainrect.right + 7;
@@ -1162,13 +1166,13 @@ void CAOSACADlg::StopCLoopThread()
 	}
 }
 
-
+/*
 void CAOSACADlg::OnEditPupilcamerasettings()
 {
 	// TODO: Add your command handler code here
-//	g_pupilview->OnEditPupilcamerasettings();
+	g_pupilview->OnEditPupilcamerasettings();
 }
-
+*/
 
 void CAOSACADlg::OnHelpAboutaosaca()
 {
