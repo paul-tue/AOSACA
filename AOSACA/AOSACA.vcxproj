@@ -155,7 +155,7 @@ copy $(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll $(SolutionDir)
       <AdditionalDependencies>ovvc64_8m.lib;ovvc14x64mdr.lib;ASDK.lib;Winmm.lib;vfw32.lib;bgapi2_genicam.lib;opencv_world410d.lib;opengl32.lib;glu32.lib;ntdll.lib;FreeImage.lib;ids_peak.lib;ids_peak_ipl.lib</AdditionalDependencies>
       <DelayLoadDLLs>
       </DelayLoadDLLs>
-      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);$(SolutionDir)Alpao\Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Baumer\Lib\x64;$(SolutionDir)opencv\lib\x64;$(SolutionDir)\OptiVec\lib\x64;$(SolutionDir)FreeImage;$(IDS_PEAK_GENERIC_SDK_PATH)\api\lib\x86_64\;$(IDS_PEAK_GENERIC_SDK_PATH)\ipl\lib\x86_64\;$(IDS_PEAK_GENERIC_SDK_PATH)\&lt;%PATH-VARIABLE-AFL%&gt;\lib\x86_64\;ids_peak.lib;ids_peak_ipl.lib;&lt;%PYTHON-PATH-AFL%&gt;.lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);$(SolutionDir)Alpao\Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Baumer\Lib\x64;$(SolutionDir)opencv\lib\x64;$(SolutionDir)\OptiVec\lib\x64;$(SolutionDir)FreeImage;$(SolutionDir)IDS\api\lib\x86_64\;$(SolutionDir)IDS\ipl\lib\x86_64\</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -232,7 +232,7 @@ copy $(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll $(SolutionDir)
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>ovvc64_8m.lib;ovvc14x64mdr.lib;ASDK.lib;Winmm.lib;vfw32.lib;bgapi2_genicam.lib;opencv_world410.lib;opengl32.lib;glu32.lib;ntdll.lib;FreeImage.lib;ids_peak.lib;ids_peak_ipl.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);$(SolutionDir)Alpao\Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Baumer\Lib\x64;$(SolutionDir)opencv\lib\x64;$(SolutionDir)\OptiVec\lib\x64;$(SolutionDir)FreeImage;$(IDS_PEAK_GENERIC_SDK_PATH)\api\lib\x86_64\;$(IDS_PEAK_GENERIC_SDK_PATH)\ipl\lib\x86_64\;$(IDS_PEAK_GENERIC_SDK_PATH)\&lt;%PATH-VARIABLE-AFL%&gt;\lib\x86_64\;ids_peak.lib;ids_peak_ipl.lib;&lt;%PYTHON-PATH-AFL%&gt;.lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);$(SolutionDir)Alpao\Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Baumer\Lib\x64;$(SolutionDir)opencv\lib\x64;$(SolutionDir)\OptiVec\lib\x64;$(SolutionDir)FreeImage;$(SolutionDir)IDS\api\lib\x86_64\;$(SolutionDir)IDS\ipl\lib\x86_64\</AdditionalLibraryDirectories>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>

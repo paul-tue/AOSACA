@@ -179,10 +179,20 @@ bool CCamera_IDS::Camera_Initialization()
 	}
 	catch (const std::exception& e)
 	{
-		g_AOSACAParams->g_stAppErrBuff = "Camera can not be opened!\n Make sure no other program is using the camera.";
+		g_AOSACAParams->g_stAppErrBuff = "Camera can not be opened!\nMake sure no other program is using the camera.";
 		g_AOSACAParams->ShowError(MB_ICONERROR);
 		peak::Library::Close();
 		return false;
+	}
+
+	// rest camera settings
+	auto userSetSelector = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("UserSetSelector");
+	auto userSetLoad = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("UserSetLoad");
+
+	if (userSetSelector && userSetSelector->IsWriteable() &&
+		userSetLoad && userSetLoad->IsAvailable()) {
+		userSetSelector->SetCurrentEntry("Default"); // or "Factory" depending on camera
+		userSetLoad->Execute();
 	}
 
 	// prepare data streams
@@ -199,53 +209,39 @@ bool CCamera_IDS::Camera_Initialization()
 	m_pNodemapDataStream = m_pDataStream->NodeMaps().at(0);
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry("Mono8");
 
-	// BINNING
-	auto binningSelector = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningSelector");
-	binningSelector->SetCurrentEntry("Region0");  // binning happening on camera FPGA
-
-	// Set binning modes (only if the camera supports this)
-	auto binningHorizontalMode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningHorizontalMode");
-	if (binningHorizontalMode && binningHorizontalMode->IsWriteable())
-		binningHorizontalMode->SetCurrentEntry("Average");
-
-	auto binningVerticalMode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningVerticalMode");
-	if (binningVerticalMode && binningVerticalMode->IsWriteable())
-		binningVerticalMode->SetCurrentEntry("Average");
-
-	// Set binning factors
-	auto binningHorizontal = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("BinningHorizontal");
-	if (binningHorizontal && binningHorizontal->IsWriteable())
-		binningHorizontal->SetValue(2);
-
-	auto binningVertical = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("BinningVertical");
-	if (binningVertical && binningVertical->IsWriteable())
-		binningVertical->SetValue(2);
-
-	// set ROI for buffer size (consider that binning is active!)
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue(0);
-	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue(0);
-	try
-	{
+	// set ROI for buffer size
+	int64_t sensorWidthMax = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->Maximum();
+	int64_t sensorHeightMax = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->Maximum();
+	// Apply ROI size
+	try {
 		m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(g_AOSACAParams->IMAGE_WIDTH_PIX);
 	}
-	catch (peak::core::OutOfRangeException)
-	{
-		g_AOSACAParams->g_stAppErrBuff.Empty();
+	catch (peak::core::OutOfRangeException&) {
 		g_AOSACAParams->g_stAppErrBuff = "Width setting out of range for this sensor!";
 		g_AOSACAParams->ShowError(MB_ICONERROR);
 		return false;
 	}
+
 	try
 	{
 		m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(g_AOSACAParams->IMAGE_HEIGHT_PIX);
 	}
-		catch (peak::core::OutOfRangeException)
-	{
-		g_AOSACAParams->g_stAppErrBuff.Empty();
+	catch (peak::core::OutOfRangeException&) {
 		g_AOSACAParams->g_stAppErrBuff = "Height setting out of range for this sensor!";
 		g_AOSACAParams->ShowError(MB_ICONERROR);
 		return false;
 	}
+	int64_t offsetX = int((sensorWidthMax - g_AOSACAParams->IMAGE_WIDTH_PIX) / 2);
+	int64_t offsetY = int((sensorHeightMax - g_AOSACAParams->IMAGE_HEIGHT_PIX) / 2);
+	auto offsetXNode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX");
+	auto offsetYNode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY");
+
+	if (offsetXNode && offsetXNode->IsWriteable())
+		offsetXNode->SetValue(offsetX);
+
+	if (offsetYNode && offsetYNode->IsWriteable())
+		offsetYNode->SetValue(offsetY);
+
 
 	if (m_pDataStream)
 	{
@@ -271,7 +267,6 @@ bool CCamera_IDS::Camera_Initialization()
 		}
 	}
 
-
 	// SET TRIGGER SOURCE "SOFTWARE" AND START INFINITE ACQUISITION
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")->SetCurrentEntry("ExposureStart");
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
@@ -293,7 +288,7 @@ bool CCamera_IDS::Camera_Initialization()
 	auto width = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->Value();
 	auto height = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->Value();
 	m_nFrameSizeInBytes = width * height * sizeof(unsigned char);
-	
+
 	m_pImgBuff = new BYTE[m_nFrameSizeInBytes];
 	ZeroMemory(m_pImgBuff, m_nFrameSizeInBytes);
 	m_pBkgndBuff = new BYTE[m_nFrameSizeInBytes];
@@ -320,6 +315,7 @@ bool CCamera_IDS::Camera_Initialization()
 
 	return true;
 }
+
 
 bool CCamera_IDS::UpdateExposureTime(void)
 {

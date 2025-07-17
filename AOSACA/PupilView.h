@@ -16,11 +16,15 @@ public:
 	std::atomic_bool	m_stopCapture{ false };
 	std::thread			m_captureThread;
 	cv::Mat				m_latestFrame;
-	std::mutex			m_frameMutex;
 	CStatic				m_ImageDisp;
 	
 // Dialog Data
 	enum { IDD = IDD_PUPILVIEW };
+
+private:
+	int m_frameCount = 0;
+	std::chrono::steady_clock::time_point m_frameStartTime;
+	double m_framerate = 0.0;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);
