@@ -248,3 +248,8 @@ cv::Mat CPupilView::FindAndDrawPupil(const cv::Mat& src)
 
     return display;
 }
+
+bool CPupilView::OnEditPupilcamerasettings()
+{
+    return true;
+}

@@ -209,6 +209,29 @@ bool CCamera_IDS::Camera_Initialization()
 	m_pNodemapDataStream = m_pDataStream->NodeMaps().at(0);
 	m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry("Mono8");
 
+	// BINNING
+	auto binningSelector = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningSelector");
+	binningSelector->SetCurrentEntry("Region0");  // binning happening on camera FPGA
+
+	// Set binning modes (only if the camera supports this)
+	auto binningHorizontalMode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningHorizontalMode");
+	if (binningHorizontalMode && binningHorizontalMode->IsWriteable())
+		binningHorizontalMode->SetCurrentEntry("Average");
+
+	auto binningVerticalMode = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("BinningVerticalMode");
+	if (binningVerticalMode && binningVerticalMode->IsWriteable())
+		binningVerticalMode->SetCurrentEntry("Average");
+
+	// Set binning factors
+	auto binningHorizontal = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("BinningHorizontal");
+	if (binningHorizontal && binningHorizontal->IsWriteable())
+		binningHorizontal->SetValue(2);
+
+	auto binningVertical = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("BinningVertical");
+	if (binningVertical && binningVertical->IsWriteable())
+		binningVertical->SetValue(2);
+
+
 	// set ROI for buffer size
 	int64_t sensorWidthMax = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->Maximum();
 	int64_t sensorHeightMax = m_pNodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->Maximum();

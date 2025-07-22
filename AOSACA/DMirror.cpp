@@ -56,6 +56,13 @@ bool CDMirror::DMInitialize()
 		g_AOSACAParams->ShowError(MB_ICONERROR);
 		return false;
 	}
+	if (!dm->Check())
+	{
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = "Something went wrong during initialization";
+		g_AOSACAParams->ShowError(MB_ICONERROR);
+		return false;
+	}
 	else 
 	{
 		m_lCurDev = 1;

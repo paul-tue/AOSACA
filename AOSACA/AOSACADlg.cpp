@@ -119,7 +119,7 @@ BEGIN_MESSAGE_MAP(CAOSACADlg, CDialogEx)
 	ON_COMMAND(ID_VIEW_DMMAP, &CAOSACADlg::OnViewDmmap)
 	ON_COMMAND(ID_VIEW_REALTIMEPLOTS, &CAOSACADlg::OnViewRealtimeplots)
 	ON_COMMAND(ID_TOOLS_ALIGNDM, &CAOSACADlg::OnToolsAligndm)
-	//ON_COMMAND(ID_EDIT_PUPILCAMERASETTINGS, &CAOSACADlg::OnEditPupilcamerasettings)
+	ON_COMMAND(ID_EDIT_PUPILCAMERASETTINGS, &CAOSACADlg::OnEditPupilcamerasettings)
 	ON_COMMAND(ID_HELP_ABOUTAOSACA, &CAOSACADlg::OnHelpAboutaosaca)
 	ON_COMMAND(ID_TOOLS_SAVEMIRRORSHAPE, &CAOSACADlg::OnToolsSavemirrorshape)
 	ON_WM_SHOWWINDOW()
@@ -195,9 +195,8 @@ BOOL CAOSACADlg::OnInitDialog()
 	short X0 = 4;
 	short Y0 = 4;
 	// correcting for main window blank space
-	LONG style = GetWindowLong(this->m_hWnd, GWL_STYLE);
-	SetWindowPos(NULL, 0, 0, MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT,
-		SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
+	//SetWindowPos(NULL, 0, 0, MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT,
+	//	SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
 	MoveWindow(X0, Y0, MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT, false);
 	
 	// Creating the Camera object
@@ -839,7 +838,7 @@ void CAOSACADlg::OnToolsGeneratepokematrix()
 	g_controlpanel->Invalidate(TRUE);
 	g_progressdlg = new CProgressDlg(this);
 	g_progressdlg->Create(IDD_PROGRESSDLG,NULL);
-	g_progressdlg->MoveWindow(MAIN_WINDOW_WIDTH/2-152, MAIN_WINDOW_HEIGHT/2-35, 475, 140);
+	g_progressdlg->MoveWindow(MAIN_WINDOW_WIDTH/2-152, MAIN_WINDOW_HEIGHT/2-35, 500, 150);
 	g_progressdlg->ShowWindow(SW_SHOW);
 	g_progressdlg->SetBarParameters(((g_AOSACAParams->NUMACTS)*g_AOSACAParams->DM_POKE_MAT_ITER + 2));
 	g_AOSACAParams->g_bSubstractBkGnd = true;
@@ -1166,13 +1165,13 @@ void CAOSACADlg::StopCLoopThread()
 	}
 }
 
-/*
+
 void CAOSACADlg::OnEditPupilcamerasettings()
 {
 	// TODO: Add your command handler code here
 	g_pupilview->OnEditPupilcamerasettings();
 }
-*/
+
 
 void CAOSACADlg::OnHelpAboutaosaca()
 {

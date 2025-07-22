@@ -31,10 +31,11 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
-	afx_msg void OnClose();
-	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-	LRESULT OnFrameUpdate(WPARAM, LPARAM);
-	void OnPaint();
-	cv::Mat FindAndDrawPupil(const cv::Mat&);
-	virtual BOOL OnInitDialog();
+	afx_msg void	OnClose();
+	afx_msg BOOL	OnEraseBkgnd(CDC* pDC);
+	LRESULT			OnFrameUpdate(WPARAM, LPARAM);
+	bool			OnEditPupilcamerasettings();
+	void			OnPaint();
+	cv::Mat			FindAndDrawPupil(const cv::Mat&);
+	virtual BOOL	 OnInitDialog();
 };

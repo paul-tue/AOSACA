@@ -136,13 +136,13 @@ void CWFSImageDlg::OnMouseMove(UINT nFlags, CPoint point)
 	}
 
 	//CDialogEx::OnMouseMove(nFlags, point);
-}
+	}
 
 void CWFSImageDlg::OnPaint()
 {
 	CPaintDC dc(this); // device context for painting
 	// TODO: Add your message handler code here
-	
+
 	if (m_BUpdate)
 	{
 		BYTE *pCurRowPixel = (BYTE *)(pDIBSectionBits);
@@ -218,11 +218,11 @@ void CWFSImageDlg::OnPaint()
 						}
 						else
 						{
-							cdc->SetPixelV(x, y, RGB(255,255,255));
-							cdc->SetPixelV(x, y-3, RGB(255,255,255));
-							cdc->SetPixelV(x, y+3, RGB(255,255,255));
-							cdc->SetPixelV(x-3, y, RGB(255,255,255));
-							cdc->SetPixelV(x+3, y, RGB(255,255,255));
+							cdc->SetPixelV(x, y, RGB(0,255,0));
+							cdc->SetPixelV(x, y-3, RGB(0,255,0));
+							cdc->SetPixelV(x, y+3, RGB(0,255,0));
+							cdc->SetPixelV(x-3, y, RGB(0,255,0));
+							cdc->SetPixelV(x+3, y, RGB(0,255,0));
 						}
 					}
 					else
