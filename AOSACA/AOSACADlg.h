@@ -10,6 +10,7 @@
 #define MAIN_WINDOW_WIDTH	1290
 #define MAIN_WINDOW_HEIGHT	970
 
+
 enum mouse_mode_enum {MOUSE_NORMAL=0,	// 0 for doing nothing
 	MOUSE_SELECT_CENTER=1,				// 1 for user selecting center,
 	MOUSE_ADJUST_CENTROIDS=2,			// 2 for moving, adding and deleting centroids
@@ -68,6 +69,7 @@ protected:
 	// Generated message map functroordalab	ions
 	virtual BOOL OnInitDialog();
 	afx_msg LRESULT	OnUpdateWindow(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnShowErrorMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();

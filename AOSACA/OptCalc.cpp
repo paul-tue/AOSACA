@@ -156,9 +156,9 @@ BOOL COptCalc::InitializeSystemParameters(BYTE *mask)
 	memset(m_CurVoltages, 0, (g_AOSACAParams->NUMACTS)*sizeof(double));
 	m_PrevVoltages1 = new double[(g_AOSACAParams->NUMACTS)];
 	memset(m_PrevVoltages1, 0, (g_AOSACAParams->NUMACTS)*sizeof(double));
-	m_dBiasBit = new double[(g_AOSACAParams->NUMACTS)];
-	memset(m_dBiasBit, 0, (g_AOSACAParams->NUMACTS)*sizeof(double));
-	memcpy(m_dBiasBit, g_AOSACAParams->g_DMBiasDeflections, g_AOSACAParams->NUMACTS*sizeof(double));
+	//m_dBiasBit = new double[(g_AOSACAParams->NUMACTS)];
+	//memset(m_dBiasBit, 0, (g_AOSACAParams->NUMACTS)*sizeof(double));
+	//memcpy(m_dBiasBit, g_AOSACAParams->g_DMBiasDeflections, g_AOSACAParams->NUMACTS*sizeof(double));
 	g_AOSACAParams->g_DMDeflections = new double[(g_AOSACAParams->NUMACTS)];
 	memset(g_AOSACAParams->g_DMDeflections, 0, (g_AOSACAParams->NUMACTS)*sizeof(double));
 	m_DMVoltages_buf = new double[(g_AOSACAParams->NUMACTS)];		
@@ -189,6 +189,13 @@ BOOL COptCalc::InitializeSystemParameters(BYTE *mask)
 	Zwave_Matrix();
 	m_SystemInitDone=true;
 	return true;
+}
+
+void COptCalc::SetDMBias()
+{
+	m_dBiasBit = new double[(g_AOSACAParams->NUMACTS)];
+	memset(m_dBiasBit, 0, (g_AOSACAParams->NUMACTS)*sizeof(double));
+	memcpy(m_dBiasBit, g_AOSACAParams->g_DMBiasDeflections, g_AOSACAParams->NUMACTS*sizeof(double));
 }
 
 //*************************************************************************
@@ -389,7 +396,7 @@ int COptCalc::Compute_WAVE (double *src)
 
 //*************************************************************************************************
 
-double COptCalc::Compute_PSF_MTF(double *src)
+double COptCalc::Compute_PSF_MTF(double* psfDst)
 {
 	int i, j, size, idx;
 	double tmp;
@@ -433,7 +440,7 @@ double COptCalc::Compute_PSF_MTF(double *src)
 		for (j = 0; j < size; j++)
 		{
 			idx = i * size + j;
-	 		src[idx] = d_PSF->data[idx] = d_PSF->data[idx] / tmp;
+	 		psfDst[idx] = d_PSF->data[idx] = d_PSF->data[idx] / tmp;
 		}
 	}
 	
@@ -445,6 +452,8 @@ double COptCalc::Compute_PSF_MTF(double *src)
 				m_strehl_ratio = d_PSF->data[i * size + j];
 		}
 	}
+
+	memcpy(psfDst, d_PSF->data, size * size * sizeof(double));
 
 	return m_strehl_ratio;
 }

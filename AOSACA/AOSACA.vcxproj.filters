@@ -740,6 +740,9 @@
     <ClInclude Include="Camera_IDS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CSetupSelectionDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AOSACA.cpp">
@@ -815,6 +818,12 @@
       <Filter>NetCom</Filter>
     </ClCompile>
     <ClCompile Include="Camera_IDS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSetupSelectionDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AOSACAParams.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

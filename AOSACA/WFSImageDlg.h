@@ -47,8 +47,8 @@ private:
 	Pen*		m_gdiPenRed;
 	Pen*		m_gdiPenWhite;
 	Pen*		m_gdiPenYellow;
-	CBitmap		m_CMapBargraybmp; 
-	CBitmap		m_CMapBarsummerbmp; 
+	//CBitmap		m_CMapBargraybmp; 
+	//CBitmap		m_CMapBarsummerbmp; 
 
 	void		ClearImageArea();
 

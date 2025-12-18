@@ -30,6 +30,8 @@
 #define ARROW	1
 #define CROSS	2
 
+#define WM_APP_SHOW_ERROR_MESSAGE (WM_APP + 111)
+
 // Enumerated constants
 typedef enum  {ABS_ZERO_BIT=0, MAX_BIT=1, MIN_BIT=2, BIAS_BIT=3, ALLIGN_BIT=4, COMP_BIT=5} mirror_state;
 // Camera frame mode
@@ -50,6 +52,12 @@ public:
 	}
 };
 
+struct SHOWERRORDATA
+{
+	int msgtype;
+	CString* pMsg;
+};
+
 class AOSACAParams
 {
 public:
@@ -66,6 +74,8 @@ public:
 	double	LENSLET_FOCAL_LENGTH_MICRONS;
 	double	MAGNIFICATION;
 	short	LENSLETGRID;
+	// Setup selection
+	CString SETUP_TYPE;   // "in-vivo" or "ex-vivo"
 	// User parameters;	
 	double	PUPIL_FIT_SIZE_MICRONS;
 	short	THRESHOLD;
@@ -136,6 +146,8 @@ public:
 	// Log file
 	std::wofstream g_Logfile;
 
+	int ShowError(int msgtype);
+
 public:
 	AOSACAParams()
 	{
@@ -187,6 +199,7 @@ public:
 
 		std::ifstream infile;
 		unsigned int i = 0;
+		/*
 		//Load DM flatness offsets file
 		if (!DM_SERIAL_NO.IsEmpty())
 		{
@@ -207,6 +220,7 @@ public:
 				ShowError(MB_ICONWARNING);
 			}
 		}
+		*/
 
 		g_bCamReady = false;
 		g_bDMReady = false;
@@ -507,26 +521,139 @@ public:
 		}
 	};
 
+	void LoadDMBias()
+	{
+		// Ensure bias array exists
+		if (!g_DMBiasDeflections)
+			return;
+
+		// Zero previous values
+		ZeroMemory(g_DMBiasDeflections, NUMACTS * sizeof(double));
+
+		// If serial unknown -> nothing to do
+		if (DM_SERIAL_NO.IsEmpty())
+		{
+			g_stAppErrBuff.Empty();
+			g_stAppErrBuff.Format(_T("DM serial number empty. Bias left zero."));
+			ShowError(MB_ICONWARNING);
+			return;
+		}
+
+		// Choose filename based on SETUP_TYPE
+		CString filename;
+		if (SETUP_TYPE.CompareNoCase(_T("in-vivo")) == 0)
+		{
+			filename.Format(_T("%sutils\\%s_in-vivo.txt"), g_stAppHomePath, DM_SERIAL_NO.GetString());
+		}
+		else if (SETUP_TYPE.CompareNoCase(_T("ex-vivo")) == 0)
+		{
+			filename.Format(_T("%sutils\\%s_ex-vivo.txt"), g_stAppHomePath, DM_SERIAL_NO.GetString());
+		}
+		else // fallback: BAX404.txt
+		{
+			g_stAppErrBuff.Empty();
+			g_stAppErrBuff.Format(_T("Could not find mirror bias file for either in- or ex-vivo setup.\nUsing \
+									standard file %s.txt"), DM_SERIAL_NO.GetString());
+			ShowError(MB_ICONWARNING);
+			filename.Format(_T("%sutils\\%s.txt"), g_stAppHomePath, DM_SERIAL_NO.GetString());
+		}
+
+		std::ifstream infile((LPCTSTR)filename);
+
+		unsigned int i = 0;
+		if (!infile.fail())
+		{
+			double deflection = 0.;
+			while (infile >> deflection)
+			{
+				g_DMBiasDeflections[i++] = deflection;
+			}
+			infile.close();
+		}
+		else {
+			g_stAppErrBuff.Empty();
+			g_stAppErrBuff.Format(L"Unable to locate %s file, DM bias voltages initialized to ZERO", filename);
+			ShowError(MB_ICONWARNING);
+		}
+
+			infile.close();
+
+		if (i != (unsigned)NUMACTS)
+		{
+			// warn if file doesn't contain expected number of entries
+			g_stAppErrBuff.Empty();
+			g_stAppErrBuff.Format(_T("Bias file %s contained %u entries, expected %d."), filename, i, NUMACTS);
+			ShowError(MB_ICONWARNING);
+		}
+	}
+
+	/*
+	#pragma message("Compiling ShowError in " __FILE__)
 	int ShowError(int msgtype)
 	{
-		int ret;
+		int ret = 0;
+		UINT flags = msgtype | MB_SETFOREGROUND | MB_TOPMOST;
+
+		// Get main window handle safely
+		CWnd* pMainWnd = AfxGetMainWnd();
+		HWND hOwner = (pMainWnd && pMainWnd->GetSafeHwnd()) ? pMainWnd->GetSafeHwnd() : ::GetActiveWindow();
+
+		// Explicitly give this thread permission to set the foreground window
+		DWORD dwFGThread = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+		DWORD dwCurThread = GetCurrentThreadId();
+		if (dwFGThread != dwCurThread)
+		{
+			AttachThreadInput(dwFGThread, dwCurThread, TRUE);
+			AllowSetForegroundWindow(ASFW_ANY);
+		}
+
+		// Ensure main window is topmost and visible before message
+		if (hOwner)
+		{
+			::BringWindowToTop(hOwner);
+			::ShowWindow(hOwner, SW_SHOW);
+			::SetForegroundWindow(hOwner);
+			::SetActiveWindow(hOwner);
+			::SetFocus(hOwner);
+		}
+
+		// Choose proper title and buttons based on message type
 		switch (msgtype)
 		{
 		case MB_ICONQUESTION:
-			ret = MessageBox(0, g_stAppErrBuff, _T("AOSACA Confirmation!"), msgtype | MB_YESNO| MB_TOPMOST | MB_SETFOREGROUND);
+			ret = ::MessageBox(hOwner, g_stAppErrBuff, _T("AOSACA Confirmation!"), flags | MB_YESNO);
 			break;
+
 		case MB_ICONERROR:
-			ret = MessageBox(0, g_stAppErrBuff, _T("AOSACA Error!"), msgtype | MB_OK| MB_TOPMOST | MB_SETFOREGROUND);
-			break;		
-		case MB_ICONINFORMATION:
-			ret = MessageBox(0, g_stAppErrBuff, _T("AOSACA Information!"), msgtype | MB_OK| MB_TOPMOST | MB_SETFOREGROUND);
+			ret = ::MessageBox(hOwner, g_stAppErrBuff, _T("AOSACA Error!"), flags | MB_OK);
 			break;
+
+		case MB_ICONINFORMATION:
+			ret = ::MessageBox(hOwner, g_stAppErrBuff, _T("AOSACA Information!"), flags | MB_OK);
+			break;
+
 		case MB_ICONWARNING:
-			ret = MessageBox(0, g_stAppErrBuff, _T("AOSACA Warning!"), msgtype | MB_OK | MB_TOPMOST | MB_SETFOREGROUND);
+			ret = ::MessageBox(hOwner, g_stAppErrBuff, _T("AOSACA Warning!"), flags | MB_OK);
+			break;
+
+		default:
+			ret = ::MessageBox(hOwner, g_stAppErrBuff, _T("AOSACA"), flags | MB_OK);
 			break;
 		}
+
+		// Force reactivation of the owner window (restores focus after user closes box)
+		if (hOwner)
+		{
+			::BringWindowToTop(hOwner);
+			::SetForegroundWindow(hOwner);
+			::SetActiveWindow(hOwner);
+		}
+
 		return ret;
 	}
+	*/
+
+
 
 	CString GetTimeStamp()
 	{

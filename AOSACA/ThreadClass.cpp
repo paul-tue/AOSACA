@@ -72,6 +72,21 @@ bool CThreadClass::InfMatrixSteps()
 	return true;
 }
 
+// just for testing purposes
+#include <iomanip> 
+void SaveSlopesToFile(const std::string& filename, double* slopes, int length)
+{
+	std::ofstream ofs(filename);
+	if (!ofs.is_open()) return;
+
+	ofs << std::fixed << std::setprecision(8);
+	for (int i = 0; i < length; ++i)
+	{
+		ofs << slopes[i] << "\n";
+	}
+	ofs.close();
+}
+
 UINT Run_DMAOLoop(LPVOID pParam)
 {
 	CThreadClass *parent = (CThreadClass *)pParam;
@@ -83,6 +98,9 @@ UINT Run_DMAOLoop(LPVOID pParam)
 	hThreadEvents[0] = g_AOSACAParams->g_ehPokeThread;
 	hThreadEvents[1] = g_AOSACAParams->g_ehCLoopThread;
 	hThreadEvents[2] = parent->m_ehThreadClose;	
+	static double elapsedTimes[10] = { 0.0 };
+	static int elapsedIndex = 0;
+	static bool bufferFull = false;
 	
 	LARGE_INTEGER time1;
 	LARGE_INTEGER time2;
@@ -140,6 +158,8 @@ UINT Run_DMAOLoop(LPVOID pParam)
 				}
 
 				g_optcalc->Send_Voltages(BIAS_BIT);
+				//g_optcalc->Send_Voltages(ABS_ZERO_BIT);
+				std::ostringstream fname;
 
 				for (k=0; k<g_AOSACAParams->DM_POKE_MAT_ITER && status && g_AOSACAParams->g_bPokeMatGeneration; k++)
 				{
@@ -150,23 +170,33 @@ UINT Run_DMAOLoop(LPVOID pParam)
 						::WaitForSingleObject(WaitEvent, waitTimePMG);
 						(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_DMVMAP_WINDOW);
 						SetEvent(g_AOSACAParams->g_ehCamSnap);
-						if ( status = parent->InfMatrixSteps())
+						if (status = parent->InfMatrixSteps()) {
 							g_centroids->CalcSlopes(m_dvTempPhi1, true);
+							fname.str(""); fname.clear();
+							fname << "./poke_matrix_slopes/" << k << "_" << j << "_pull.txt";
+							SaveSlopesToFile(fname.str(), m_dvTempPhi1, CentSize);
+						}
 						(parent->m_pParent)->Opt_Perform();	
 						g_optcalc->get_ZCoeffs_all(m_dvTempWaveZ1, MAX_TERM_NUMBER) ;   //for Zernike P_mat by Jim 10/20/2015
 
 						g_optcalc->SetActuator(j,BIAS_BIT);	// - apply bias to DM
+						//g_optcalc->Send_Voltages(ABS_ZERO_BIT);
 						::WaitForSingleObject(WaitEvent, waitTimePMG);					
 						g_optcalc->SetActuator(j,MIN_BIT);	// push					
 						::WaitForSingleObject(WaitEvent, waitTimePMG);
 						(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_DMVMAP_WINDOW);
 						SetEvent(g_AOSACAParams->g_ehCamSnap);
-						if (status = parent->InfMatrixSteps())
+						if (status = parent->InfMatrixSteps()) {
 							g_centroids->CalcSlopes(m_dvTempPhi2, true);
+							fname.str(""); fname.clear();
+							fname << "./poke_matrix_slopes/" << k << "_" << j << "_push.txt";
+							SaveSlopesToFile(fname.str(), m_dvTempPhi2, CentSize);
+						}
 						(parent->m_pParent)->Opt_Perform();
 
 						g_optcalc->get_ZCoeffs_all(m_dvTempWaveZ2, MAX_TERM_NUMBER) ;  //for Zernike P_mat by Jim 10/20/2015
 						g_optcalc->SetActuator(j,BIAS_BIT);	// - apply bias to DM
+						//g_optcalc->Send_Voltages(ABS_ZERO_BIT);
 						::WaitForSingleObject(WaitEvent, waitTimePMG);
 						VD_subV( &m_dmTempInfMat[k][j*CentSize], m_dvTempPhi2, m_dvTempPhi1, CentSize );
 						VD_divC( &m_dmTempInfMat[k][j*CentSize], &m_dmTempInfMat[k][j*CentSize], CentSize, 2.*g_optcalc->get_MinBit());
@@ -174,7 +204,11 @@ UINT Run_DMAOLoop(LPVOID pParam)
 						VD_subV( &m_dmTempInfMat_Zernike[k][j*MAX_TERM_NUMBER], m_dvTempWaveZ2, m_dvTempWaveZ1, MAX_TERM_NUMBER ); //for Zernike P_mat by Jim 10/20/2015
 						VD_divC( &m_dmTempInfMat_Zernike[k][j*MAX_TERM_NUMBER], &m_dmTempInfMat_Zernike[k][j*MAX_TERM_NUMBER], MAX_TERM_NUMBER, 2.*g_optcalc->get_MinBit());//for Zernike P_mat by Jim 10/20/2015
 
-						(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGB_WINDOW);
+						if (parent->m_pProgressDlg && ::IsWindow(parent->m_pProgressDlg->GetSafeHwnd()))
+						{
+							parent->m_pProgressDlg->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGB_WINDOW);
+						}
+						//(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_WINDOW);
 					}
 				}
 
@@ -196,25 +230,29 @@ UINT Run_DMAOLoop(LPVOID pParam)
 						VD_addV(m_dmTempInfMat_Zernike[0], m_dmTempInfMat_Zernike[0], m_dmTempInfMat_Zernike[i], g_AOSACAParams->NUMACTS*MAX_TERM_NUMBER);  //for Zernike P_mat 10/20/2015
 					}	
 
-					(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGB_WINDOW);
+					if (parent->m_pProgressDlg && ::IsWindow(parent->m_pProgressDlg->GetSafeHwnd()))
+						parent->m_pProgressDlg->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGB_WINDOW);
 					VD_divC(m_dmTempInfMat[0], m_dmTempInfMat[0], g_AOSACAParams->NUMACTS*CentSize, g_AOSACAParams->DM_POKE_MAT_ITER);
 					g_centroids->set_Pmat(m_dmTempInfMat[0]);
 
 					VD_divC(m_dmTempInfMat_Zernike[0], m_dmTempInfMat_Zernike[0], g_AOSACAParams->NUMACTS*MAX_TERM_NUMBER, g_AOSACAParams->DM_POKE_MAT_ITER); //for Zernike P_mat by Jim 10/20/2015
 					g_centroids->set_Pmat_Zernike(m_dmTempInfMat_Zernike[0]); //for Zernike P_mat by Jim 10/20/2015
 
-					(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGB_WINDOW);
+					if (parent->m_pProgressDlg && ::IsWindow(parent->m_pProgressDlg->GetSafeHwnd()))
+						parent->m_pProgressDlg->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGB_WINDOW);
 					g_AOSACAParams->g_bNewPmat = true;
 					g_AOSACAParams->g_bPokeMatGeneration = false;
 					PlaySound(_T("utils\\Balloon.wav"),NULL,SND_FILENAME);
-					(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGBD_WINDOW);
+					if (parent->m_pProgressDlg && ::IsWindow(parent->m_pProgressDlg->GetSafeHwnd()))
+						parent->m_pProgressDlg->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGBD_WINDOW);
 				}
 				else if(!status && g_AOSACAParams->g_bPokeMatGeneration)
 				{	
 					g_AOSACAParams->g_stAppErrBuff.Empty();
 					g_AOSACAParams->g_stAppErrBuff = "Error Occured while generating Poke Matrix!!!";
 					g_AOSACAParams->ShowError(MB_ICONERROR);
-					(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGBC_WINDOW);
+					if (parent->m_pProgressDlg && ::IsWindow(parent->m_pProgressDlg->GetSafeHwnd()))
+						parent->m_pProgressDlg->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_PGBC_WINDOW);
 				}
 				for (i=0;i<g_AOSACAParams->DM_POKE_MAT_ITER;i++)
 				{
@@ -226,7 +264,7 @@ UINT Run_DMAOLoop(LPVOID pParam)
 				delete [] m_dvTempPhi2;
 				delete [] m_dmTempInfMat_Zernike;
 				delete [] m_dvTempWaveZ1;
-				delete [] m_dvTempWaveZ2;
+				delete [] m_dvTempWaveZ2; 
 			}
 			break;
 		case WAIT_OBJECT_0+1: // Closed loop 				
@@ -252,9 +290,23 @@ UINT Run_DMAOLoop(LPVOID pParam)
 				(parent->m_pParent)->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_WINDOW);		
 				// Update Frequency
 				QueryPerformanceCounter(&time2);
-				telapse = double(g_AOSACAParams->m_lnFreq/(time2.QuadPart-time1.QuadPart));
-				text.Format(_T("%2.2f"),telapse);
+				double dt = double(time2.QuadPart - time1.QuadPart);
+				elapsedTimes[elapsedIndex] = dt;
+				elapsedIndex = (elapsedIndex + 1) % 10;
+				if (elapsedIndex == 0) bufferFull = true;
+
+				// Compute average over filled slots
+				int count = bufferFull ? 10 : elapsedIndex;
+				double avgDt = 0.0;
+				for (int i = 0; i < count; ++i)
+					avgDt += elapsedTimes[i];
+				avgDt /= count;
+
+				// Convert to frequency
+				double freq = double(g_AOSACAParams->m_lnFreq) / avgDt;
+				text.Format(_T("%2.1f"), freq);
 				(parent->m_pParent)->SetDlgItemText(IDE_FREQUENCY, text);
+				(parent->m_pParent)->Update_Displays();
 			}
 			else if (g_AOSACAParams->g_bControlON)
 			{

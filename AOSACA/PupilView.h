@@ -1,41 +1,55 @@
 #pragma once
-#define PUPIL_CAM_WIDTH		640
-#define PUPIL_CAM_HEIGHT	480
 #include "afxwin.h"
-#include <opencv2/highgui.hpp>
 // CPupilView dialog
 
 class CPupilView : public CDialogEx
 {
-	DECLARE_DYNAMIC(CPupilView)
+    DECLARE_DYNAMIC(CPupilView)
 
 public:
-	CPupilView(CWnd* pParent = NULL);
-	virtual ~CPupilView();
-	cv::VideoCapture	m_cap;
-	std::atomic_bool	m_stopCapture{ false };
-	std::thread			m_captureThread;
-	cv::Mat				m_latestFrame;
-	CStatic				m_ImageDisp;
-	
-// Dialog Data
-	enum { IDD = IDD_PUPILVIEW };
+    CPupilView(CWnd* pParent = nullptr);
+    virtual ~CPupilView();
 
-private:
-	int m_frameCount = 0;
-	std::chrono::steady_clock::time_point m_frameStartTime;
-	double m_framerate = 0.0;
+    enum { IDD = IDD_PUPILVIEW };
+    CStatic m_ImageDisp;
+    CWnd* Display;
+    bool m_BUpdate;
+
+    BOOL m_bDisableZ1;
+    BOOL m_bDisableZ2;
+    BOOL m_bDisableZ3;
+    BOOL m_bDisableZ4;
+    BOOL m_bDisableZ5;
+    BOOL m_bDisableZ6;
+
+    double m_dSliderScale;
 
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);
-	DECLARE_MESSAGE_MAP()
+    virtual void DoDataExchange(CDataExchange* pDX);
+    CBrush m_bkgndBrush;   // black
+    CBrush m_frgndBrush;
+    CFont m_BigFont;
+    DECLARE_MESSAGE_MAP()
 
 public:
-	afx_msg void	OnClose();
-	afx_msg BOOL	OnEraseBkgnd(CDC* pDC);
-	LRESULT			OnFrameUpdate(WPARAM, LPARAM);
-	bool			OnEditPupilcamerasettings();
-	void			OnPaint();
-	cv::Mat			FindAndDrawPupil(const cv::Mat&);
-	virtual BOOL	 OnInitDialog();
+    virtual BOOL OnInitDialog();
+    afx_msg void OnClose();
+    afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+    afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+    void ApplyZernikeDisableFlags();
+    void OnZernikeToggle();
+    afx_msg LRESULT OnUpdateWindow(WPARAM wParam, LPARAM lParam);
+    void EnableZernikeControls(BOOL enable);
+    CSliderCtrl m_ZernikeSlider[5];   
+
+    static constexpr int UIToZernike[5] =
+    {
+        4, // Defocus
+        3, // Astig 45°
+        5, // Astig 90°
+        7, // Coma vertical
+        8  // Coma horizontal
+    };
+
+    void InitParam();
 };

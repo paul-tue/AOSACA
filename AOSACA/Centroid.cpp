@@ -156,6 +156,8 @@ bool CCentroid::InitializeCentroidSystemParameters()
 	memset(m_usSearch_array, 0, ((g_AOSACAParams->LENSLETGRID)*(g_AOSACAParams->LENSLETGRID))*sizeof(unsigned short));
 	m_dZAbber = new double[MAX_TERM_NUMBER+1];
 	memset(m_dZAbber, 0, (MAX_TERM_NUMBER+1)*sizeof(double));	
+	memset(m_bDisableZernike, 0, sizeof(m_bDisableZernike));
+	memset(m_dUserZernike, 0, sizeof(m_dUserZernike));
 	return true;
 }
 
@@ -247,30 +249,55 @@ void CCentroid::Initialize_Matrices()
 
 bool CCentroid::Load_Pmat()
 {
-
 	m_bPMatReady = false;
-	m_bRecon = false;	
+	m_bRecon = false;
+	FILE* fp = nullptr;
 	CStringA filename;
-	FILE *fp;
-//////////added by Jim 2015
-	 // load Zernike Pmat.  10/20/2015	
-	fopen_s(&fp, "utils\\P_mat_Zernike.txt","r");
-	if(fp)
-	{	
-		MD_read(&m_dPmat_Zernike, MAX_TERM_NUMBER, (g_AOSACAParams->NUMACTS), fp);		
-		fclose(fp);	
-		m_bPmat_Zernike_ready=true;
-		//		Generate_Reconstructor_Zernike();
-	}// load Zernike Pmat  and generate Zernike reconstructor
-///////////////
 
-////////////P_mat
-	fopen_s(&fp, "utils\\P_mat.txt","r");
-	if(fp)
-	{	
-		MD_read(&m_dPmat, m_nTotalCentroids<<1, (g_AOSACAParams->NUMACTS), fp);		
-		fclose(fp);		
-		Generate_PTPmat();		
+	// OutputDebugStringA(("Selected setup type " + std::to_string(g_AOSACAParams->SETUP_TYPE));
+
+
+	// --- Load Zernike Poke Matrix ---
+	if (g_AOSACAParams->SETUP_TYPE == "ex-vivo")
+		filename = "utils\\P_mat_Zernike_ex-vivo.txt";
+	else
+		filename = "utils\\P_mat_Zernike_in-vivo.txt";
+
+	fopen_s(&fp, filename, "r");
+	if (fp)
+	{
+		MD_read(&m_dPmat_Zernike, MAX_TERM_NUMBER, g_AOSACAParams->NUMACTS, fp);
+		fclose(fp);
+		m_bPmat_Zernike_ready = true;
+		// Optionally generate Zernike reconstructor here if required:
+		// Generate_Reconstructor_Zernike();
+	}
+	else
+	{
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = _T("Failed to open %S"), filename.GetString();
+		g_AOSACAParams->ShowError(MB_ICONERROR);
+	}
+
+	// --- Load Standard Poke Matrix ---
+	if (g_AOSACAParams->SETUP_TYPE.CompareNoCase(_T("ex-vivo")) == 0)
+		filename = "utils\\P_mat_ex-vivo.txt";
+	else
+		filename = "utils\\P_mat_in-vivo.txt";
+
+	fopen_s(&fp, filename, "r");
+	if (fp)
+	{
+		MD_read(&m_dPmat, m_nTotalCentroids << 1, g_AOSACAParams->NUMACTS, fp);
+		fclose(fp);
+		Generate_PTPmat();
+		m_bPMatReady = true;
+	}
+	else
+	{
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = _T("Failed to open %S"), filename.GetString();
+		g_AOSACAParams->ShowError(MB_ICONERROR);
 	}
 
 	return m_bPMatReady;
@@ -517,7 +544,10 @@ void CCentroid::Make_Search_Array (float pupil_dia)
 	}
 	m_centroid_matrix->m_sUse_cent_count = m_centroid_matrix->m_sFound_cent_count;
 	m_bMinCent = true;
-	
+	std::ofstream f("wfs_mask.txt");
+	for (int j = 0; j < g_AOSACAParams->LENSLETGRID; ++j)
+		for (int i = 0; i < g_AOSACAParams->LENSLETGRID; ++i)
+			f << m_usSearch_array[j * g_AOSACAParams->LENSLETGRID + i] << std::endl;
 }
 
 //added by Francesco 2016
@@ -533,8 +563,8 @@ void CCentroid::Make_Search_Array_Act(float pupil_dia)
 	memset(X, 0, g_AOSACAParams->DMGRID*g_AOSACAParams->DMGRID * sizeof(double));
 	Y = new double[g_AOSACAParams->DMGRID*g_AOSACAParams->DMGRID];
 	memset(Y, 0, g_AOSACAParams->DMGRID*g_AOSACAParams->DMGRID * sizeof(double));
-	actPitch = 800; // Hard coded, actuator pitch = 800 um for Alpao 97 actuator DM
-	xcenterpoint = (g_AOSACAParams->DMGRID) / double(2)*actPitch; // Should be 4400 um
+	actPitch = 1500; // Hard coded, actuator pitch = 1500 um for Alpao 15-97 actuator DM
+	xcenterpoint = (g_AOSACAParams->DMGRID) / double(2)*actPitch;
 	ycenterpoint = xcenterpoint;
 	short index;
 	for (index = 0; index < g_AOSACAParams->DMGRID; index++)
@@ -729,11 +759,11 @@ bool CCentroid::find_centroid(int boxindex,unsigned char *imgbuf)
 	if(center.x < 0 || center.y < 0	|| center.x > g_AOSACAParams->IMAGE_HEIGHT_PIX || center.y > g_AOSACAParams->IMAGE_WIDTH_PIX); 
 	else
 	{
-		if (m_centroid_matrix->m_sGeo_cent_ind == boxindex) // IGNORE CENTER (FOR WOLF'S WFS)
-		{
-			m_centroid_matrix->m_bFound[boxindex] = true;
-			return (m_centroid_matrix->m_bFound[boxindex]);
-		}
+		//if (m_centroid_matrix->m_sGeo_cent_ind == boxindex) // IGNORE CENTER (FOR WOLF'S WFS)
+		//{
+		//	m_centroid_matrix->m_bFound[boxindex] = true;
+		//	return (m_centroid_matrix->m_bFound[boxindex]);
+		//}
 		m_centroid_matrix->m_bFound[boxindex] = false;
 		if (max_in_box(&center, g_AOSACAParams->SEARCHBOX_SIZE, g_AOSACAParams->SEARCHBOX_SIZE, imgbuf, &peakint))
 		{
@@ -981,7 +1011,7 @@ CStringA CCentroid::SavePmat()
 		AfxMessageBox(_T("Can not open Pmat file to write, check folder permissions") ,MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);
 
 	//save Poke matrix expressed as Zernike coefficients  10/20/2015
-	filename = g_AOSACAParams->g_stAppHomePath+_T("utils\\P_mat_Zernike_0.txt");
+	filename = g_AOSACAParams->g_stAppHomePath+_T("utils\\P_mat_Zernike.txt");
 	fopen_s(&fp, filename,"w+");
 	if (fp)
 	{
@@ -1063,6 +1093,7 @@ void CCentroid::CalcSlopes(double *dest, bool process)
 			//	VD_subvector_subC( tempPhi, size, 1, VD_mean(tempPhi, size));	//tilt removal
 			//	VD_subvector_subC( &tempPhi[size], size, 1, VD_mean(&tempPhi[size], size));//tip removal
 			Remove_TipTilt(tempPhi); //remove tip/tilt //added by Jim
+			Remove_ZernikeModes(tempPhi);
 			Remove_BadSpots(tempPhi);  //set the value of the missing spots 0  //added by Jim
 			MD_mulV( m_dErrV, &m_dReconM, tempPhi, (g_AOSACAParams->NUMACTS), size );			//Closedloop computation
 
@@ -1072,18 +1103,87 @@ void CCentroid::CalcSlopes(double *dest, bool process)
 	delete [] tempPhi, tempPhi=NULL;
 }
 
-bool CCentroid::Initialize_Phi()//double defocus)
+void CCentroid::SetZernikeBias(int k, double value_um)
 {
-	double *temp_dZAbber;
-	temp_dZAbber = new double[MAX_TERM_NUMBER + 1];
-	//VD_mulC(temp_dZAbber, m_dZAbber, MAX_TERM_NUMBER+1, (g_AOSACAParams->MICRONS_PER_PIXEL/(g_AOSACAParams->LENSLET_FOCAL_LENGTH_MICRONS*g_AOSACAParams->MAGNIFICATION)));
-	VD_mulC(temp_dZAbber, m_dZAbber, MAX_TERM_NUMBER + 1, (2 / (g_AOSACAParams->PUPIL_FIT_SIZE_MICRONS)));
-	MD_mulV(m_dRefPhiV, &m_dZM, temp_dZAbber, m_nTotalCentroids << 1, MAX_TERM_NUMBER + 1);
-	//	defocus *= (g_AOSACAParams->MICRONS_PER_PIXEL/(g_AOSACAParams->LENSLET_FOCAL_LENGTH_MICRONS*g_AOSACAParams->MAGNIFICATION));
-	//	VD_mulC( m_dRefPhiV, m_dZ4DefocusV, m_nTotalCentroids<<1, defocus);
-	memset(m_dErrV, 0, (g_AOSACAParams->NUMACTS) * sizeof(double));
+	if (k < 1 || k > MAX_TERM_NUMBER)
+		return;
 
+	// Store user bias in microns
+	m_dUserZernike[k] = value_um;
+
+	// Recompute reference slopes
+	Initialize_Phi();
+}
+
+
+bool CCentroid::Initialize_Phi()
+{
+	double* temp_dZAbber = new double[MAX_TERM_NUMBER + 1];
+
+	memcpy(temp_dZAbber, m_dZAbber,
+		(MAX_TERM_NUMBER + 1) * sizeof(double));
+
+	// add user bias
+	for (int k = 1; k <= MAX_TERM_NUMBER; ++k)
+		temp_dZAbber[k] += m_dUserZernike[k];
+
+	const double scale = 2.0 / g_AOSACAParams->PUPIL_FIT_SIZE_MICRONS;
+
+	VD_mulC(temp_dZAbber, temp_dZAbber,
+		MAX_TERM_NUMBER + 1, scale);
+
+	MD_mulV(m_dRefPhiV, &m_dZM,
+		temp_dZAbber,
+		m_nTotalCentroids << 1,
+		MAX_TERM_NUMBER + 1);
+
+	memset(m_dErrV, 0,
+		g_AOSACAParams->NUMACTS * sizeof(double));
+
+	delete[] temp_dZAbber;
 	return true;
+}
+
+void CCentroid::Remove_ZernikeModes(double* slope)
+{
+	const int nSlopes = m_nTotalCentroids << 1;
+
+	for (int k = 1; k <= MAX_TERM_NUMBER; ++k)
+	{
+		if (!m_bDisableZernike[k])
+			continue;
+
+		double num = 0.0;
+		double den = 0.0;
+
+		for (int i = 0; i < nSlopes; ++i)
+		{
+			const double z = m_dZM[i * (MAX_TERM_NUMBER + 1) + k];
+			num += z * slope[i];
+			den += z * z;
+		}
+
+		if (den > 0.0)
+		{
+			const double a = num / den;
+
+			for (int i = 0; i < nSlopes; ++i)
+				slope[i] -= a * m_dZM[i * (MAX_TERM_NUMBER + 1) + k];
+		}
+	}
+}
+
+bool CCentroid::HasUserZernike() const
+{
+	for (int k = 1; k <= MAX_TERM_NUMBER; ++k)
+		if (m_dUserZernike[k] != 0.0)
+			return true;
+	return false;
+}
+
+const double* CCentroid::get_UserZernike() const
+{
+	return m_dUserZernike;
 }
 
 

@@ -103,8 +103,11 @@ BOOL CDMirror::SendVoltages(double *nCurDeflections)
 
 		if (dm->Send(m_dDeflections) == FAILURE)
         {
-			AfxMessageBox(_T("Sending Voltages error: device Error"), MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);
-             // If send failed, view error message
+			g_AOSACAParams->g_stAppErrBuff.Empty();
+			g_AOSACAParams->g_stAppErrBuff = "Error occured during sending voltages: Device Error!";
+			g_AOSACAParams->ShowError(MB_ICONERROR);
+			// AfxMessageBox(_T("Sending Voltages error: device Error"), MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);
+            // If send failed, view error message
             dm->PrintLastError();
             return FALSE;
         }
@@ -126,41 +129,36 @@ bool CDMirror::isDMReady()
 		return false;
 }
 
-DWORD WINAPI CDMirror::DMTestThread (LPVOID param)
+DWORD WINAPI CDMirror::DMTestThread(LPVOID param)
 {
-	CDMirror *parent = (CDMirror *)param;
+	CDMirror* parent = (CDMirror*)param;
 	CEvent waitEvent;
-	
-	while(1)
+
+	while (1)
 	{
 		::WaitForSingleObject(parent->m_eDMTest, INFINITE);
-		ZeroMemory(parent->m_dDeflections, parent->m_nAct*sizeof(double));
-						
-		for (int i=0; i<parent->m_nAct; i++)
+		ZeroMemory(parent->m_dDeflections, parent->m_nAct * sizeof(double));
+
+		for (int i = 0; i < parent->m_nAct; i++)
 		{
-			// fill one value with 0.2
-			parent->m_dDeflections[i] = 0.5;
-			
-		/*	if (parent->acedev5Send(1, &parent->m_dmId, parent->m_dDeflections) == -1)
-			{				
-				// If send failed, view error message
-				parent->acecsErrDisplay();
+			// Set single actuator to max deflection
+			parent->m_dDeflections[i] = g_AOSACAParams->DM_MAX_DEFLECTION;
+
+			// Send voltages to mirror
+			if (!parent->SendVoltages(parent->m_dDeflections))
 				break;
-			}
-			// Wait for 500 ms (1 sec) to view the result on a wave front sensor for exemple
+
+			// Wait for display/WFS visualization
 			::WaitForSingleObject(waitEvent, 500);
 
-			parent->m_dDeflections[i] = -0.5;
-			
-			if (parent->acedev5Send(1, &parent->m_dmId, parent->m_dDeflections) == -1)
-			{			
-				// If send failed, view error message
-				parent->acecsErrDisplay();break;
-			}
-			fprintf(fp, "%d\t%1.2f\n",i, parent->m_dDeflections[i]);*/
-			::WaitForSingleObject(waitEvent, 500);
-			
+			// Reset actuator to 0
 			parent->m_dDeflections[i] = 0;
+
+			// Send reset
+			if (!parent->SendVoltages(parent->m_dDeflections))
+				break;
+
+			::WaitForSingleObject(waitEvent, 200);
 		}
 	}
 	return 0;

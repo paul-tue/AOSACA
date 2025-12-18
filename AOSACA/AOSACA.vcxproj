@@ -22,7 +22,7 @@
     <ProjectGuid>{A72E9A1B-42E1-4D65-A65B-4B70847907DA}</ProjectGuid>
     <RootNamespace>AOSACA</RootNamespace>
     <Keyword>MFCProj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -36,7 +36,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Static</UseOfMfc>
+    <UseOfMfc>Dynamic</UseOfMfc>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -83,7 +83,7 @@
     <LibraryPath>
     </LibraryPath>
     <TargetName>$(ProjectName)D</TargetName>
-    <IncludePath>$(WindowsSDK_IncludePath);$(IncludePath);$(ProjectDir)</IncludePath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(IncludePath);$(ProjectDir)\</IncludePath>
     <ExcludePath>$(ExcludePath);$(SystemRoot)</ExcludePath>
     <OutDir>$(SolutionDir)$(PlatformShortName)\$(Configuration)\</OutDir>
     <IntDir>$(PlatformShortName)\$(Configuration)\</IntDir>
@@ -147,7 +147,7 @@ copy $(SolutionDir)Baumer\bin\$(PlatformShortName)\MathParser.dll $(SolutionDir)
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)opencv2;$(SolutionDir)FreeImage;$(SolutionDir)OpenCV\include;$(SolutionDir)Baumer\Inc;$(SolutionDir)Alpao\include;$(SolutionDir)OptiVec\include;$(SolutionDir)NetCom;$(SolutionDir)IDS\api\include\;$(SolutionDir)IDS\ipl\include\;$(SolutionDir)OpenCV\lib\x64</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -532,6 +532,7 @@ echo.
     <ClInclude Include="Camera_IDS.h" />
     <ClInclude Include="Centroid.h" />
     <ClInclude Include="ControlPanelDlg.h" />
+    <ClInclude Include="CSetupSelectionDlg.h" />
     <ClInclude Include="DMirror.h" />
     <ClInclude Include="DMMapDlg.h" />
     <ClInclude Include="MyEditCtrl.h" />
@@ -648,11 +649,13 @@ makehm /h /a afxhh.h IDW_,HIDW_,0x50000 "%(FullPath)" &gt;&gt; "hlp\HTMLDefines.
     </ClCompile>
     <ClCompile Include="AOSACA.cpp" />
     <ClCompile Include="AOSACADlg.cpp" />
+    <ClCompile Include="AOSACAParams.cpp" />
     <ClCompile Include="AOSACAParamsDlg.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Camera_IDS.cpp" />
     <ClCompile Include="Centroid.cpp" />
     <ClCompile Include="ControlPanelDlg.cpp" />
+    <ClCompile Include="CSetupSelectionDlg.cpp" />
     <ClCompile Include="DMirror.cpp" />
     <ClCompile Include="DMMapDlg.cpp" />
     <ClCompile Include="MyEditCtrl.cpp" />

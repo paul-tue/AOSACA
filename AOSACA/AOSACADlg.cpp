@@ -122,6 +122,7 @@ BEGIN_MESSAGE_MAP(CAOSACADlg, CDialogEx)
 	ON_COMMAND(ID_EDIT_PUPILCAMERASETTINGS, &CAOSACADlg::OnEditPupilcamerasettings)
 	ON_COMMAND(ID_HELP_ABOUTAOSACA, &CAOSACADlg::OnHelpAboutaosaca)
 	ON_COMMAND(ID_TOOLS_SAVEMIRRORSHAPE, &CAOSACADlg::OnToolsSavemirrorshape)
+	ON_MESSAGE(WM_APP_SHOW_ERROR_MESSAGE, &CAOSACADlg::OnShowErrorMessage)
 	ON_WM_SHOWWINDOW()
 END_MESSAGE_MAP()
 
@@ -195,8 +196,8 @@ BOOL CAOSACADlg::OnInitDialog()
 	short X0 = 4;
 	short Y0 = 4;
 	// correcting for main window blank space
-	//SetWindowPos(NULL, 0, 0, MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT,
-	//	SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
+	SetWindowPos(NULL, 0, 0, MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT,
+		SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
 	MoveWindow(X0, Y0, MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT, false);
 	
 	// Creating the Camera object
@@ -234,6 +235,9 @@ BOOL CAOSACADlg::OnInitDialog()
 	g_wfsimg->ShowWindow(SW_SHOW);
 	g_wfsimg->InitParam();
 
+	g_pupilview = new CPupilView(this);
+	g_pupilview->Create(IDD_PUPILVIEW, this);
+
 	//Control Panel Dialog
 	mainrect.left = mainrect.right + 7;
 	mainrect.top += 110;
@@ -241,6 +245,7 @@ BOOL CAOSACADlg::OnInitDialog()
 	g_controlpanel = new CControlPanelDlg(this);
 	g_controlpanel->Create(IDD_CONTROLPANEL, this);
 	g_controlpanel->MoveWindow(&mainrect, true);
+	g_controlpanel->SetOwner(this);
 	g_controlpanel->ShowWindow(SW_SHOW);
 
 	//Slope Vector Map Dialog
@@ -288,8 +293,8 @@ BOOL CAOSACADlg::OnInitDialog()
 	mainrect.left = mainrect.right + 7;
 	mainrect.right = mainrect.left + 336;
 	mainrect.bottom = mainrect.top + 310;
-	g_pupilview = new CPupilView(this);
-	g_pupilview->Create(IDD_PUPILVIEW,this);
+	//g_pupilview = new CPupilView(this);
+	//g_pupilview->Create(IDD_PUPILVIEW,this);
 	g_pupilview->MoveWindow(&mainrect, true);
 	g_pupilview->ShowWindow(SW_SHOW);
 
@@ -317,7 +322,7 @@ BOOL CAOSACADlg::OnInitDialog()
 	m_bMenuFlags[8] = g_AOSACAParams->g_bDMReady; //Save mirror shape
 	OnUpdateMenu();
 	g_AOSACAParams->g_bDrawCentroids = true;
-
+	::AllowSetForegroundWindow(ASFW_ANY);
 	m_Statusbar.Create(WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP, CRect(0, 0, 0, 0), this, IDS_STATUSBAR);
 
 	SetEvent(g_AOSACAParams->g_ehCamLive);
@@ -328,7 +333,6 @@ BOOL CAOSACADlg::OnInitDialog()
 LRESULT CAOSACADlg::OnUpdateWindow(WPARAM wParam, LPARAM lParam)
 {
 //	m_msgID = lParam;
-	/*
 	switch (lParam) {
 	case UPDATE_WINDOW:		
 		Update_Displays();
@@ -352,9 +356,56 @@ LRESULT CAOSACADlg::OnUpdateWindow(WPARAM wParam, LPARAM lParam)
 	default:
 		break;
 	}
-	*/
-	
 	return 0;
+}
+
+LRESULT CAOSACADlg::OnShowErrorMessage(WPARAM wParam, LPARAM lParam)
+{
+	auto* pData = reinterpret_cast<SHOWERRORDATA*>(lParam);
+	if (!pData || !pData->pMsg)
+		return 0;
+
+	const CString msg = *pData->pMsg; // make a local copy before freeing
+	const int msgtype = pData->msgtype;
+	delete pData; // only delete the struct, not the member string
+
+	// bring main window to front safely
+	if (IsIconic()) ShowWindow(SW_RESTORE);
+	::SetWindowPos(m_hWnd, HWND_TOP, 0, 0, 0, 0,
+		SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+	::SetForegroundWindow(m_hWnd);
+	::BringWindowToTop(m_hWnd);
+	::SetActiveWindow(m_hWnd);
+
+	UINT flags = MB_SETFOREGROUND | MB_TOPMOST | MB_OK;
+	CString title;
+
+	switch (msgtype)
+	{
+	case MB_ICONQUESTION:
+		title = _T("AOSACA Confirmation");
+		flags |= MB_ICONQUESTION | MB_YESNO;
+		break;
+	case MB_ICONERROR:
+		title = _T("AOSACA Error");
+		flags |= MB_ICONERROR;
+		break;
+	case MB_ICONINFORMATION:
+		title = _T("AOSACA Information");
+		flags |= MB_ICONINFORMATION;
+		break;
+	case MB_ICONWARNING:
+		title = _T("AOSACA Warning");
+		flags |= MB_ICONWARNING;
+		break;
+	default:
+		title = _T("AOSACA");
+		break;
+	}
+
+	int result = ::MessageBox(nullptr, *(pData->pMsg), title, flags);
+
+	return result;
 }
 
 void CAOSACADlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -413,6 +464,17 @@ void CAOSACADlg::OnClose()
 {
 	// TODO: Add your message handler code here and/or call default
 
+	
+	if(g_AOSACAParams->g_bNewPmat)
+	{
+		g_AOSACAParams->g_stAppErrBuff.Empty();
+		g_AOSACAParams->g_stAppErrBuff = _T("Do you want to save newly generated Poke Matrix??"); 
+		if (g_AOSACAParams->ShowError(MB_ICONQUESTION) == IDYES)
+		{
+			g_centroids->SavePmat();
+		}
+	}
+	
 	if(g_dmaothread) 
 	{
 		if (g_AOSACAParams->g_bPokeMatGeneration || g_AOSACAParams->g_bCloseLoopThread)
@@ -464,14 +526,6 @@ void CAOSACADlg::OnClose()
 	if(g_camera){
 		delete g_camera;
 	}
-
-	if(g_AOSACAParams->g_bNewPmat)
-	{
-		g_AOSACAParams->g_stAppErrBuff.Empty();
-		g_AOSACAParams->g_stAppErrBuff = _T("Do you want to save newly generated Poke Matrix??"); 
-		if (g_AOSACAParams->ShowError(MB_ICONQUESTION) == IDYES)
-			g_centroids->SavePmat();
-	}
 	if(g_centroids) delete g_centroids;
 	if(g_AOSACAParams) delete g_AOSACAParams;
 	EndDialog(IDOK);
@@ -521,7 +575,7 @@ void CAOSACADlg::lBtnUp_ImageDlg(CDPoint point)
 			{				
 				g_wfsimg->setCursor_ImageDlg(ARROW);
 				g_AOSACAParams->g_stAppErrBuff.Empty();
-				g_AOSACAParams->g_stAppErrBuff = "Unable to load Poke matrix!!!, generate poke matrix before performing AO correction"; 
+				g_AOSACAParams->g_stAppErrBuff = "Unable to load Poke matrix! Generate poke matrix before performing AO correction"; 
 				g_AOSACAParams->ShowError(MB_ICONERROR);
 			}
 			g_svmap->Init_CenterPoints(g_centroids->get_TotalCentCount());
@@ -672,7 +726,7 @@ void CAOSACADlg::Opt_Perform()
 		// Drawing the PSF
 		if(g_psfmap->m_BUpdate)
 		{
-			g_optcalc->Compute_PSF_MTF (g_psfmap->m_dData);		
+			g_optcalc->Compute_PSF_MTF(g_psfmap->m_dData);		
 			g_psfmap->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_WINDOW);
 		}
 		// Drawing the slope vectors
@@ -843,6 +897,8 @@ void CAOSACADlg::OnToolsGeneratepokematrix()
 	g_progressdlg->SetBarParameters(((g_AOSACAParams->NUMACTS)*g_AOSACAParams->DM_POKE_MAT_ITER + 2));
 	g_AOSACAParams->g_bSubstractBkGnd = true;
 	g_AOSACAParams->g_bPokeMatGeneration = true;
+	g_dmaothread->m_pParent = this;
+	g_dmaothread->m_pProgressDlg = g_progressdlg;
 	SetEvent(g_AOSACAParams->g_ehPokeThread);
 }
 
@@ -912,6 +968,31 @@ void CAOSACADlg::OnToolsZerodm()
 void CAOSACADlg::OnToolsTestdmactuators()
 {
 	// TODO: Add your command handler code here
+	CMenu* mmenu = GetMenu();
+	CMenu* submenu = mmenu->GetSubMenu(3);
+	submenu->CheckMenuItem(ID_TOOLS_TESTDMACTUATORS, MF_UNCHECKED | MF_BYCOMMAND);
+	UINT menuState = submenu->GetMenuState(ID_TOOLS_TESTDMACTUATORS, MF_BYCOMMAND);
+	ASSERT(menuState != 0xFFFFFFFF);
+	if (menuState & MF_CHECKED)
+	{
+		submenu->CheckMenuItem(ID_TOOLS_TESTDMACTUATORS, MF_UNCHECKED | MF_BYCOMMAND);
+		g_dmirror->TestActuators();
+	}
+	else
+	{
+		submenu->CheckMenuItem(ID_TOOLS_TESTDMACTUATORS, MF_CHECKED | MF_BYCOMMAND);
+		g_optcalc->Send_Voltages(BIAS_BIT);
+	}
+	// Update AOSACA Menu
+	m_bMenuFlags[0] = true; // save image
+	m_bMenuFlags[1] = true; // update pupil center
+	m_bMenuFlags[2] = true; // update AOSACA parameters
+	m_bMenuFlags[4] = false; // Generate poke matrix
+	m_bMenuFlags[5] = true; // Set all DM actuators to '0'
+	m_bMenuFlags[6] = true; //Test all DM actuators one by one
+	m_bMenuFlags[8] = true; //Save mirror shape
+	OnUpdateMenu();
+	g_dmmap->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_WINDOW);
 }
 
 void CAOSACADlg::OnToolsSavemirrorshape()
@@ -1008,11 +1089,13 @@ void CAOSACADlg::OnViewPsfmap()
 	{
 		submenu->CheckMenuItem(ID_VIEW_PSFMAP, MF_UNCHECKED | MF_BYCOMMAND);
 		g_psfmap->m_BUpdate = false;
+		g_pupilview->m_BUpdate = false;
 	}
 	else
 	{
 		submenu->CheckMenuItem(ID_VIEW_PSFMAP, MF_CHECKED | MF_BYCOMMAND);
 		g_psfmap->m_BUpdate = true;
+		g_pupilview->m_BUpdate = true;
 	}
 }
 
@@ -1169,7 +1252,8 @@ void CAOSACADlg::StopCLoopThread()
 void CAOSACADlg::OnEditPupilcamerasettings()
 {
 	// TODO: Add your command handler code here
-	g_pupilview->OnEditPupilcamerasettings();
+	return;
+	//g_pupilview->OnEditPupilcamerasettings();
 }
 
 

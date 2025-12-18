@@ -1,5 +1,7 @@
 #pragma once
 
+class CAOSACADlg;
+class CProgressDlg;
 
 typedef enum {POKEMAT, CLOSELOOP} Thread_ID;
 // CThreadClass
@@ -21,6 +23,7 @@ private:
 
 public:
 	CAOSACADlg	*m_pParent;
+	CProgressDlg *m_pProgressDlg;
 
 public:
 	virtual BOOL InitInstance(CAOSACADlg *parent);

@@ -111,6 +111,7 @@ public:
 	BOOL	m_bCRenewPmat;	
 	BOOL	m_bCAutoMeasure;
 	BOOL	m_bCAOtoggle;
+	BOOL	m_bCDefocusToggle;
 	BOOL	m_bCPreCorrApply;
 
 protected:

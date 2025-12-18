@@ -99,7 +99,7 @@ void CDMMapDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 				&&(m_DMActRects[i].bottom>= point.y))
 			{
 				m_bDMSelection[i] = true;
-				m_DMVoltages[i] = m_dMaxDef;
+				m_DMVoltages[i] = -m_dMaxDef;
 				UpdateSelectedActuators();
 			}
 		}

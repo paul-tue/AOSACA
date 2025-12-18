@@ -62,6 +62,9 @@ public:
 	bool*	get_UseCentroids(){return m_centroid_matrix->m_bUse_centroid;}
 	double* get_SearchBoxCenters(){return m_dBox_center;}
 	unsigned short* get_SearchArray(){return m_usSearch_array;}
+	double* get_AverageIntensity() { return m_centroid_matrix->m_dAverageintensity; }
+	bool	HasUserZernike() const;
+	const double* get_UserZernike() const;
 
 	// File Operations
 	CString SaveCentroidTextFile(CString centtextfile);
@@ -84,12 +87,17 @@ public:
 	void	set_ModestoZero(short nummodes);
 	void	CalcSlopes(double*,bool);
 	bool	Initialize_Phi();//double);
+	void	Remove_ZernikeModes(double* slope);
+	void	ApplyZernikeBiasToSlopes(double* slope);
+	void	SetZernikeBias(int k, double value_um);
 	double	*m_dErrV;
 	double	*m_dPhiV;
 	double	*m_dReconM;
 //	double	*m_dZ4DefocusV;
 	double	*m_dZM;
 	double	*m_dZAbber;
+	bool	m_bDisableZernike[MAX_TERM_NUMBER + 1];	// true = mode is DISABLED in closed loop
+	double	m_dUserZernike[MAX_TERM_NUMBER + 1];
 	bool	Generate_Reconstructor();
 	void	Initialize_Matrices();
 	void	UnInitialize_Matrices();

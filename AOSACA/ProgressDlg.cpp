@@ -65,12 +65,14 @@ void CProgressDlg::Close()
 afx_msg LRESULT CProgressDlg::OnUpdateWindow(WPARAM wParam, LPARAM lParam)
 {
 	switch (lParam) {
-	case UPDATE_WINDOW:
+	case UPDATE_PGB_WINDOW:
 		m_pProgress.StepIt();
-		//OnPaint();
-		//Invalidate(FALSE);
 		break;
-	default:
+	case UPDATE_PGBD_WINDOW:
+		SetDlgItemText(IDCANCEL, _T("Done"));
+		break;
+	case UPDATE_PGBC_WINDOW:
+		SetDlgItemText(IDCANCEL, _T("Cancelled"));
 		break;
 	}
 	return 0;

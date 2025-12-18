@@ -81,6 +81,7 @@ public:
 	// Initialization Functions
 	void	UpdateUserParameters();
 	BOOL	InitializeSystemParameters(BYTE *mask);
+	void	SetDMBias();
 	void	UpdateDMMaxDeflection(double);
 
 	// External Data Retrieval Functions
@@ -101,6 +102,7 @@ public:
 	// Computing Zernikes/WAVE/MTF/PSF
 	void	Init_Mahajan();
 	int		Compute_WAVE (double*);
+	void	Add_ZernikeReferenceWave(double* src); // only used for displaying the user wavefront
 	double	Compute_PSF_MTF(double*);
 	double	Compute_RMS(double);
 	CStringA Compute_RMSZernikesVoltages(double, double);

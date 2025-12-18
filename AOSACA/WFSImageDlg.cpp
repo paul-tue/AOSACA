@@ -40,8 +40,8 @@ void CWFSImageDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDH_WFSIMAGE, m_WFImageDisp);
-	DDX_Control(pDX, IDL_CMAPBARG, m_CMapBargray);
-	DDX_Control(pDX, IDL_CMAPBARS, m_CMapBarsummer);
+	//DDX_Control(pDX, IDL_CMAPBARG, m_CMapBargray);
+	//DDX_Control(pDX, IDL_CMAPBARS, m_CMapBarsummer);
 }
 
 
@@ -157,6 +157,123 @@ void CWFSImageDlg::OnPaint()
 	
 		imagedisp->DrawImage(offscreenBitmap, 0, 0, DIBSecWidth, DIBSecHeight);
 
+		// draw histogram (masked to pupil)
+		const int HIST_SIZE = 256;
+		int histogram[HIST_SIZE] = { 0 };
+
+		// Select correct image buffer
+		BYTE* pImg = (g_AOSACAParams->g_last_click == LIVE || g_AOSACAParams->g_last_click == SNAP)
+			? g_AOSACAParams->g_pImgBuffPrc
+			: g_AOSACAParams->g_pLocalImgBuff;
+
+		const int W = DIBSecWidth;
+		const int H = DIBSecHeight;
+
+		double pupilDiameter_px = g_AOSACAParams->PUPIL_FIT_SIZE_MICRONS /
+			g_AOSACAParams->MICRONS_PER_PIXEL *
+			g_AOSACAParams->MAGNIFICATION;
+		double pupilRadius_px = pupilDiameter_px / 2.0;
+
+		// Pupil properties (in image coordinate space)
+		float cx_img = static_cast<float>(g_AOSACAParams->PUPIL_CENTER.x);
+		float cy_img = static_cast<float>(g_AOSACAParams->PUPIL_CENTER.y);
+
+		// Defensive: if pupil radius <= 0 or center outside image, fall back to whole image
+		bool usePupilMask = (pupilRadius_px > 0.5) &&
+			(cx_img + pupilRadius_px >= 0) && (cx_img - pupilRadius_px < W) &&
+			(cy_img + pupilRadius_px >= 0) && (cy_img - pupilRadius_px < H);
+
+		if (usePupilMask)
+		{
+			float r2 = static_cast<float>(pupilRadius_px * pupilRadius_px);
+
+			#undef min
+			#undef max
+
+			// Loop only inside bounding box of pupil
+			int x0 = std::max(0, int(cx_img - pupilRadius_px));
+			int x1 = std::min(W - 1, int(cx_img + pupilRadius_px));
+			int y0 = std::max(0, int(cy_img - pupilRadius_px));
+			int y1 = std::min(H - 1, int(cy_img + pupilRadius_px));
+
+			for (int y = y0; y <= y1; ++y)
+			{
+				float dy = (float)y - cy_img;
+				float dy2 = dy * dy;
+
+				// pointer math micro-optimization (optional)
+				int base = y * W;
+				for (int x = x0; x <= x1; ++x)
+				{
+					float dx = (float)x - cx_img;
+					float dist2 = dx * dx + dy2;
+
+					// inside circular pupil?
+					if (dist2 <= r2)
+					{
+						BYTE val = pImg[base + x];
+						histogram[val]++;
+					}
+				}
+			}
+		}
+		else
+		{
+			// fallback: use full image
+			int nPixels = W * H;
+			for (int i = 0; i < nPixels; ++i)
+				histogram[pImg[i]]++;
+		}
+
+		// Find peak value for scaling
+		int maxVal = 1;
+		for (int i = 0; i < HIST_SIZE; ++i)
+			if (histogram[i] > maxVal)
+				maxVal = histogram[i];
+
+		// Build smoothed point set
+		REAL histHeight = 100.0f; // pixels high for the overlay
+		REAL histScaleX = (REAL)DIBSecWidth / (HIST_SIZE - 1);
+		REAL histScaleY = (REAL)histHeight / (REAL)maxVal;
+
+		std::vector<PointF> histPoints;
+		histPoints.reserve(HIST_SIZE);
+
+		for (int i = 0; i < HIST_SIZE; ++i)
+		{
+			REAL x = i * histScaleX;
+			// invert y so 0 is bottom of the plotted area (we translate in flipped space below)
+			REAL y = (REAL)histogram[i] * histScaleY;
+			histPoints.push_back(PointF(x, y));
+		}
+
+		// Draw histogram at bottom histHeight px in the flipped coordinate system
+		GraphicsState oldState = imagedisp->Save();
+
+		Matrix histMatrix;
+		// Because the global transform already flips vertically,
+		// translate upward (in flipped space) so the histogram appears at the visual bottom.
+		histMatrix.Translate(0.0f, (REAL)(5.0f), MatrixOrderAppend);
+		imagedisp->MultiplyTransform(&histMatrix);
+
+		// Optional: semi-transparent background strip for readability
+		// SolidBrush bgBrush(Color(100, 0, 0, 0));
+		// RectF bgRect(0.0f, 0.0f, (REAL)DIBSecWidth, histHeight + 6.0f);
+		// imagedisp->FillRectangle(&bgBrush, bgRect);
+
+		// Bright orange interpolated line
+		Pen histPen(Color(255, 255, 140, 0), 2.0f);
+		histPen.SetLineJoin(LineJoinRound);
+		histPen.SetStartCap(LineCapRound);
+		histPen.SetEndCap(LineCapRound);
+		imagedisp->SetSmoothingMode(SmoothingModeHighQuality);
+
+		// Draw smoothed line
+		if (histPoints.size() > 1)
+			imagedisp->DrawCurve(&histPen, histPoints.data(), (INT)histPoints.size(), 0.25f);
+
+		imagedisp->Restore(oldState);
+
 		//draw searchboxes
 		if(m_bDrawSearchBoxes)
 		{
@@ -179,6 +296,24 @@ void CWFSImageDlg::OnPaint()
 
 			imagedisp->DrawRectangles(m_gdiPenYellow, pRects, nboxcount);
 			delete [] pRects;
+
+			// draw pupil as orange circle using GDI+
+			double pupilDiameter_px = g_AOSACAParams->PUPIL_FIT_SIZE_MICRONS /
+										g_AOSACAParams->MICRONS_PER_PIXEL *
+										g_AOSACAParams->MAGNIFICATION;
+			double pupilRadius_px = pupilDiameter_px / 2.0;
+
+			float cx = static_cast<float>(g_AOSACAParams->PUPIL_CENTER.x);
+			float cy = static_cast<float>(g_AOSACAParams->IMAGE_HEIGHT_PIX - g_AOSACAParams->PUPIL_CENTER.y); // vertical flip correction
+
+			Pen pupilPen(Color(255, 255, 129, 0), 2.0f);
+			imagedisp->SetSmoothingMode(SmoothingModeHighQuality);
+			imagedisp->DrawEllipse(&pupilPen,
+				cx - static_cast<float>(pupilRadius_px),
+				cy - static_cast<float>(pupilRadius_px),
+				static_cast<float>(pupilDiameter_px),
+				static_cast<float>(pupilDiameter_px));
+
 			m_bDrawSearchBoxes = false;
 		}		
 		//draw centroids
@@ -209,12 +344,11 @@ void CWFSImageDlg::OnPaint()
 					{
 						if (i == sGeoCentind)
 						{
-							// NEGLECT CENTER SPOT (WOLF'S WFS)
-							/*cdc->SetPixelV(x, y, RGB(30,144,255));
+							cdc->SetPixelV(x, y, RGB(30,144,255));
 							cdc->SetPixelV(x, y-3, RGB(30,144,255));
 							cdc->SetPixelV(x, y+3, RGB(30,144,255));
 							cdc->SetPixelV(x-3, y, RGB(30,144,255));
-							cdc->SetPixelV(x+3, y, RGB(30,144,255));*/
+							cdc->SetPixelV(x+3, y, RGB(30,144,255));
 						}
 						else
 						{
@@ -235,19 +369,20 @@ void CWFSImageDlg::OnPaint()
 					}
 				}
 			}
+
 			Display->ReleaseDC(cdc);
 		
 			m_bDrawCentroids = false;
 		}
 		m_BUpdate = false;
 	}
-	// put a green spot in center
+	// put an orange spot in camera center
 	CDC *cdc;
 	cdc = Display->GetDC();
-	cdc->SetPixelV(g_AOSACAParams->IMAGE_WIDTH_PIX / 2-1, g_AOSACAParams->IMAGE_HEIGHT_PIX / 2 - 1, RGB(0, 255, 0));
-	cdc->SetPixelV(g_AOSACAParams->IMAGE_WIDTH_PIX / 2, g_AOSACAParams->IMAGE_HEIGHT_PIX / 2-1, RGB(0, 255, 0));
-	cdc->SetPixelV(g_AOSACAParams->IMAGE_WIDTH_PIX / 2-1, g_AOSACAParams->IMAGE_HEIGHT_PIX / 2, RGB(0, 255, 0));
-	cdc->SetPixelV(g_AOSACAParams->IMAGE_WIDTH_PIX / 2, g_AOSACAParams->IMAGE_HEIGHT_PIX / 2, RGB(0, 255, 0));
+	cdc->SetPixelV(g_AOSACAParams->IMAGE_WIDTH_PIX / 2-1, g_AOSACAParams->IMAGE_HEIGHT_PIX / 2 - 1, RGB(255, 129, 0));
+	cdc->SetPixelV(g_AOSACAParams->IMAGE_WIDTH_PIX / 2, g_AOSACAParams->IMAGE_HEIGHT_PIX / 2-1, RGB(255, 129, 0));
+	cdc->SetPixelV(g_AOSACAParams->IMAGE_WIDTH_PIX / 2-1, g_AOSACAParams->IMAGE_HEIGHT_PIX / 2, RGB(255, 129, 0));
+	cdc->SetPixelV(g_AOSACAParams->IMAGE_WIDTH_PIX / 2, g_AOSACAParams->IMAGE_HEIGHT_PIX / 2, RGB(255, 129, 0));
 
 	Display->ReleaseDC(cdc);
 
@@ -291,6 +426,7 @@ void CWFSImageDlg::InitParam()
 	imagedisp->SetPixelOffsetMode(PixelOffsetModeHalf);
 	imagedisp->SetTransform(matrix); // Method1
 
+	/*
 	if( m_CMapBargraybmp.m_hObject == 0 && m_CMapBargraybmp.LoadBitmap( IDB_GRAYCMAP ) )  
 	{
 		m_CMapBargray.SetBitmap( m_CMapBargraybmp );
@@ -301,6 +437,7 @@ void CWFSImageDlg::InitParam()
 	}
 	m_CMapBargray.SetWindowPos(NULL, m_slx, 5, 510, 20, SWP_FRAMECHANGED);
 	m_CMapBarsummer.SetWindowPos(NULL, m_slx, 5, 510, 20, SWP_FRAMECHANGED);
+	*/
 }
 
 void CWFSImageDlg::setCapture_ImageDlg(void)
@@ -358,6 +495,6 @@ void CWFSImageDlg::SetWFSImageColor()
 	offscreenBitmap = new Bitmap(bmi, pDIBSectionBits);
 	if (g_AOSACAParams->g_last_click == LIVE)
 		SetEvent(g_AOSACAParams->g_ehCamLive);
-	m_CMapBarsummer.ShowWindow(g_AOSACAParams->USECOLORMAP);
-	m_CMapBargray.ShowWindow(!g_AOSACAParams->USECOLORMAP);
+	//m_CMapBarsummer.ShowWindow(g_AOSACAParams->USECOLORMAP);
+	//m_CMapBargray.ShowWindow(!g_AOSACAParams->USECOLORMAP);
 }

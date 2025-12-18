@@ -325,17 +325,14 @@ bool CCamera_IDS::Camera_Initialization()
 		OutputDebugStringA(("Payload:  " + std::to_string(m_nFrameSizeInBytes) + "\n").c_str());
 	}
 
-	// commented as this is only applicable for Baumer cameras, will implement later for IDS camera
 	//Load background image into buffer if available
-	/*
 	CStringA filename = "utils\\background.bimg";
 	ifstream bkgndFile;
 	bkgndFile.open(filename, ios::in | ios::binary);
 	if (!bkgndFile.read((char*)m_pBkgndBuff, m_nFrameSizeInBytes))
 		ZeroMemory(m_pBkgndBuff, m_nFrameSizeInBytes);
 	bkgndFile.close();
-	*/
-
+	
 	return true;
 }
 
@@ -445,14 +442,10 @@ DWORD WINAPI CCamera_IDS::CamThread(LPVOID pParam)
 	HANDLE hCamEvents[3];
 	bool bRunCamThread = true;
 	CString text;
-	double telapse;
 
 	hCamEvents[0] = parent->m_ehCamThreadClose;
 	hCamEvents[1] = g_AOSACAParams->g_ehCamLive;
 	hCamEvents[2] = g_AOSACAParams->g_ehCamSnap;
-
-	LARGE_INTEGER time1;
-	LARGE_INTEGER time2;
 
 	std::wofstream m_Logfile;
 	//	m_Logfile.open("Clogfile.txt", std::wofstream::out);
@@ -467,9 +460,11 @@ DWORD WINAPI CCamera_IDS::CamThread(LPVOID pParam)
 			//m_Logfile.close();
 			break;
 		case WAIT_OBJECT_0 + 1:
+		{
 			//	m_Logfile<<"ELiveT\n";
 			g_AOSACAParams->g_frame_mode = LIVESHOW;
 			//Get current CPU clock time
+			LARGE_INTEGER time1, time2;
 			QueryPerformanceCounter(&time1);
 			//Retrieve an image
 			/*	error = parent->m_FCcam.FireSoftwareTrigger();
@@ -482,10 +477,29 @@ DWORD WINAPI CCamera_IDS::CamThread(LPVOID pParam)
 			parent->m_pParent->PostMessage(WM_UPDATE_WINDOW, 0, UPDATE_WFSIMG_WINDOW);
 			//Get current CPU clock time
 			QueryPerformanceCounter(&time2);
-			telapse = (double)(g_AOSACAParams->m_lnFreq / (time2.QuadPart - time1.QuadPart));//ticks passed
-			text.Format(_T("%2.2f"), telapse);
+			// *** frequency averaging ***
+			static double elapsedTimes[10] = { 0.0 };
+			static int elapsedIndex = 0;
+			static bool bufferFull = false;
+
+			double dt = double(time2.QuadPart - time1.QuadPart);
+			elapsedTimes[elapsedIndex] = dt;
+			elapsedIndex = (elapsedIndex + 1) % 10;
+			if (elapsedIndex == 0) bufferFull = true;
+
+			// average over filled slots
+			int count = bufferFull ? 10 : elapsedIndex;
+			double avgDt = 0.0;
+			for (int i = 0; i < count; ++i)
+				avgDt += elapsedTimes[i];
+			avgDt /= count;
+
+			// to frequency
+			double freq = double(g_AOSACAParams->m_lnFreq) / avgDt;
+			text.Format(_T("%2.1f"), freq);
 			(parent->m_pParent)->SetDlgItemText(IDE_FREQUENCY, text);
 			//	m_Logfile<<"DLiveT\n";
+		}
 			break;
 		case WAIT_OBJECT_0 + 2:
 			//	m_Logfile<<LPCTSTR(g_AOSACAParams->GetTimeStamp())<<"ESnapT\n";
@@ -495,7 +509,7 @@ DWORD WINAPI CCamera_IDS::CamThread(LPVOID pParam)
 				pImagePixels = rawImage->GetData();
 				memcpy(g_AOSACAParams->g_pImgBuffPrc, pImagePixels, parent->m_nFrameSizeInBytes);*/
 			parent->CatchFrame();
-			// g_AOSACAParams->g_bSubstractBkGnd ? parent->SubtractBackground() : 0;
+			g_AOSACAParams->g_bSubstractBkGnd ? parent->SubtractBackground() : 0;
 			SetEvent(g_AOSACAParams->g_ehCamNewFrame);
 			//	m_Logfile<<LPCTSTR(g_AOSACAParams->GetTimeStamp())<<"DSnapT\n";
 			break;

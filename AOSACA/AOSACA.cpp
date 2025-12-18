@@ -9,10 +9,13 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include <CSetupSelectionDlg.h>
 
 HWND    ghDlg = 0;          // Handle to main dialog box.
 HACCEL  ghAccelTable = 0;   // Handle to accelerator table.
 
+extern AOSACAParams* g_AOSACAParams;
+extern COptCalc* g_optcalc;
 
 // CAOSACAApp
 
@@ -101,11 +104,26 @@ BOOL CAOSACAApp::InitInstance()
 		// App is NOT running twice
 		CAOSACADlg dlg;
 		m_pMainWnd = &dlg;
+		
+		// Show setup selection
+		CSetupSelectionDlg setupDlg(&dlg); // set parent explicitly
+		INT_PTR setupResponse = setupDlg.DoModal();
+		if (setupResponse != IDOK)
+		{
+			GdiplusShutdown(gdiplusToken);
+			return FALSE;
+		}
+		
+		g_AOSACAParams->SETUP_TYPE = setupDlg.m_SelectedSetup;  //_T("ex-vivo");
+		g_AOSACAParams->LoadDMBias();
+		g_optcalc->SetDMBias();
+		
+
 		INT_PTR nResponse = dlg.DoModal();
 		if (nResponse == IDOK)
 		{
-			// TODO: Place code here to handle when the dialog is
-			//  dismissed with OK
+				// TODO: Place code here to handle when the dialog is
+				//  dismissed with OK
 		}
 		else if (nResponse == IDCANCEL)
 		{

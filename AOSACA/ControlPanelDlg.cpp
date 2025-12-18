@@ -15,6 +15,7 @@ extern CWFSImageDlg	*g_wfsimg;
 extern CCamera_IDS		*g_camera;
 extern CCentroid	*g_centroids;
 extern COptCalc		*g_optcalc;
+extern CPupilView	*g_pupilview;
 // CControlPanelDlg dialog
 
 IMPLEMENT_DYNAMIC(CControlPanelDlg, CDialogEx)
@@ -28,6 +29,7 @@ CControlPanelDlg::CControlPanelDlg(CWnd* pParent /*=NULL*/)
 	m_bCRenewPmat = FALSE;
 	m_bCAutoMeasure = FALSE;
 	m_bCAOtoggle = FALSE;
+	m_bCDefocusToggle = FALSE;
 	m_bCPreCorrApply = FALSE;
 	m_eNetMsg = new HANDLE[1];
 
@@ -71,6 +73,7 @@ void CControlPanelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CONTROL_ANALYSIS_RENEWPMAT, m_bCRenewPmat);
 	DDX_Check(pDX, IDC_CONTROL_ANALYSIS_AUTO, m_bCAutoMeasure);
 	DDX_Check(pDX, IDC_CONTROL_DM_AOONOFF, m_bCAOtoggle);
+	//DDX_Check(pDX, IDC_CONTROL_DM_AOONOFF, m_bCDefocusToggle);
 	DDX_Control(pDX, IDB_CONTROL_CAM_LIVE, m_CamLive);
 	DDX_Control(pDX, IDB_CONTROL_CAM_SNAP, m_CamSnap);
 	DDX_Control(pDX, IDB_CONTROL_CAM_SAVEBKGND, m_SaveBkgnd);
@@ -120,6 +123,7 @@ BEGIN_MESSAGE_MAP(CControlPanelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CONTROL_ANALYSIS_RENEWPMAT, &CControlPanelDlg::OnBnClickedControlAnalysisRenewpmat)
 	ON_BN_CLICKED(IDC_CONTROL_ANALYSIS_AUTO, &CControlPanelDlg::OnBnClickedControlAnalysisAuto)
 	ON_BN_CLICKED(IDC_CONTROL_DM_AOONOFF, &CControlPanelDlg::OnBnClickedControlDmAoonoff)
+	//ON_BN_CLICKED(IDC_CONTROL_DM_AOONOFF, &CControlPanelDlg::OnBnClickedControlDeactivateDefocus)
 	ON_BN_CLICKED(IDB_CONTROL_DM_CLOOPSTOP, &CControlPanelDlg::OnBnClickedControlDmCloopstop)
 	ON_WM_CTLCOLOR()
 	ON_BN_CLICKED(IDC_CONTROL_REFRACTION_APPLY, &CControlPanelDlg::OnBnClickedControlRefractionApply)
@@ -280,7 +284,7 @@ BOOL CControlPanelDlg::OnInitDialog()
 	text.Format(L"%3.2f", m_IntGain);
 	SetDlgItemText(IDE_CONTROL_CLOOPPARAMS_INTGGAIN, text);
 	m_eModestoZero.SetValidation(MYEDIT_INTEGER, m_ModestoZero, 0, 50, 2, 0, false);
-	m_ePupilSize.SetValidation(MYEDIT_DOUBLE, m_PupilSize, 4, 7.2, 1, 1, false);
+	m_ePupilSize.SetValidation(MYEDIT_DOUBLE, m_PupilSize, 4, 7.5, 1, 1, false);
 	m_ePreCorrection_Def.SetValidation(MYEDIT_DOUBLE, m_PreDefocusValue, -9, 9, 1, 2, true);
 	m_ePreCorrection_Cyl.SetValidation(MYEDIT_DOUBLE, m_PreCylinderValue, -9, 9, 1, 2, true);
 	m_ePreCorrection_Axis.SetValidation(MYEDIT_INTEGER, m_PreAxisValue, 0, 179, 3, 0, false);
@@ -308,6 +312,9 @@ BOOL CControlPanelDlg::OnInitDialog()
 	m_bFlags[7] = g_AOSACAParams->g_bDMReady;	//fixed def
 	m_bFlags[8] = g_AOSACAParams->g_bDMReady;	//Closed loop
 	m_bFlags[9] = g_AOSACAParams->g_bDMReady;	//AO On/Off toggle
+	if (g_pupilview) {
+		g_pupilview->EnableZernikeControls(FALSE);
+	}
 	m_CLoopToggleStop.ShowWindow(false);
 	m_CLoopToggle.ShowWindow(true);
 	m_CLoopToggle.EnableWindow( g_AOSACAParams->g_bDMReady );
@@ -432,6 +439,8 @@ void CControlPanelDlg::OnBnClickedControlCamLive()
 	if ( g_AOSACAParams->g_last_click != LIVE )
 		SetEvent(g_AOSACAParams->g_ehCamLive);
 	g_AOSACAParams->g_last_click = g_AOSACAParams->g_cur_click = LIVE;
+	//g_AOSACAParams->g_frame_mode = LIVESHOW;
+	//OutputDebugStringA(("Frame mode changed to " + std::to_string(g_AOSACAParams->g_frame_mode) + "\n").c_str());
 	SetCursor(LoadCursor(NULL,  MAKEINTRESOURCE(IDC_ARROW)));
 }
 
@@ -582,6 +591,7 @@ void CControlPanelDlg::OptPerfButton()
 	m_bFlags[6] = true; 	//Refraction correction
 	m_bFlags[8] = true;		//Closed loop
 	m_bFlags[9] = true;		//AO On/Off toggle
+	g_pupilview->EnableZernikeControls(TRUE);
 	if (!g_centroids->get_Reconflag() 
 		&& !g_centroids->get_MinCentReady() )
 		m_bFlags[8] = false;
@@ -610,6 +620,7 @@ void CControlPanelDlg::OnBnClickedControlDmCloop()
 	m_bFlags[7] = true;		//fixed def
 	m_bFlags[8] = true;		//Closed loop
 	m_bFlags[9] = false;	//AO On/Off toggle
+	g_pupilview->EnableZernikeControls(FALSE);
 	SetEvent(m_ehUpdateDialog);
 	// Start closed loop thread
 	m_pParent->StartCLoopThread();
@@ -636,6 +647,7 @@ void CControlPanelDlg::OnBnClickedControlDmCloopstop()
 	m_bFlags[7] = true;		//fixed def
 	m_bFlags[8] = false;	//Closed loop
 	m_bFlags[9] = true;		//AO On/Off toggle
+	g_pupilview->EnableZernikeControls(TRUE);
 	SetEvent(m_ehUpdateDialog);
 }
 
@@ -710,6 +722,7 @@ void CControlPanelDlg::OnBnClickedControlAnalysisAuto()
 	{
 		m_bFlags[0] = m_bFlags[1] = m_bFlags[2] = m_bFlags[3] = m_bFlags[8] = m_bFlags[9] = false;
 		m_bFlags[4] = m_bFlags[5] = m_bFlags[6] = m_bFlags[7] = true;
+		g_pupilview->EnableZernikeControls(FALSE);
 		g_AOSACAParams->g_bControlON = false;
 		g_AOSACAParams->g_last_click = AUTO;
 		m_pParent->StartCLoopThread();
@@ -718,7 +731,8 @@ void CControlPanelDlg::OnBnClickedControlAnalysisAuto()
 	{
 		g_AOSACAParams->g_last_click = OPTPERFORM;		
 		m_pParent->StopCLoopThread();	
-		m_bFlags[0] = m_bFlags[1] = m_bFlags[2] = m_bFlags[3] = m_bFlags[4] = m_bFlags[5] = m_bFlags[6] = m_bFlags[7] = m_bFlags[8] = m_bFlags[9] = true;	
+		m_bFlags[0] = m_bFlags[1] = m_bFlags[2] = m_bFlags[3] = m_bFlags[4] = m_bFlags[5] = m_bFlags[6] = m_bFlags[7] = m_bFlags[8] = m_bFlags[9] = true;
+		g_pupilview->EnableZernikeControls(TRUE);
 	}
 	
 	SetEvent(m_ehUpdateDialog);
